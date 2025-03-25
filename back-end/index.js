@@ -641,6 +641,29 @@ app.get("/duplicateForm/:id", async (req, res) => {
   }
 });
 
+app.get("/getAllFormResponses/:id", async (req, res) => {
+  try {
+    // 1. Fetch the Form document by formID
+    const form = await Form.findOne({ formID: req.params.id });
+    if (!form) {
+      return res.status(404).json({ msg: "Form not found" });
+    }
+
+    return res.status(200).json({
+      formTitle: form.formTitle,
+      formID: form.formID,
+      formSections: form.formSections,
+      formResponses: form.formResponses,
+    });
+  } catch (error) {
+    console.error("Error fetching all form responses:", error);
+    return res
+      .status(500)
+      .json({ msg: "Failed to fetch form responses", error: error.message });
+  }
+});
+
+
 mongoose
   .connect(process.env.MONGO_DB_URL)
   .then(() => {
@@ -652,77 +675,3 @@ mongoose
   .catch(() => {
     console.log("Connection to database failed !");
   });
-
-/*
-
-Form Array Object Template:
-
-[
-    {
-      formID: formID,
-      formTitle: formTitle,
-      formDescription: formDescription,
-      formQuestions: formQuestions,
-      formResponses: formResponses,
-      formGroups: formGroups
-    }
-]
-
-
-Questions Array Object Template:
-
-[
-    {
-        questionID: 1231
-        questionType: 1,
-        question: "aasdasdf sfsda  fsdfa",
-        options: ["option1", "options2"]
-    },
-    {
-        questionID: 1231
-        questionType: 2,
-        question: "aasdasdf sfsda  fsdfa"
-    },
-    {
-        questionID: 1231
-        questionType: 3,
-        question: "aasdasdf sfsda  fsdfa",
-        upperLimit: 5,
-        labels: ["fas", "jhkjs", "asf", "fsad", "adfs"]
-    }
-]
-
-Group Array Object Template:
-
-[
-    {
-        groupID: "fsdfas",
-        groupName: "fsadfsdf",
-        groupLink: ".........."
-    }
-    {
-      primaryGroupID: "fsdfas",
-      primaryGroupName: "Campus 1",
-      groups: [{
-        groupID: "fsdfas",
-        groupName: "fsadfsdf",
-        groupLink: ".........."
-    }]
-    }
-]
-
-Response Array Object Template:
-
-[
-  {
-    userResponseID: 4316
-    userGroupID: "fkjsd"
-    userResponse: [
-      { questionID: 4333,
-        answer: "gnskjd"
-      }
-    ]
-  }
-]
-
-*/
