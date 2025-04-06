@@ -6,10 +6,6 @@ function MCQDashboardListItem({
   selectedGroupNames1,
   selectedGroupNames2,
 }) {
-  // Debug logs for developer reference
-  console.log("Selected Group Names 1", selectedGroupNames1);
-
-  // Determine group names for display
   const firstGroupName = content2
     ? Object.values(selectedGroupNames1).join(", ")
     : "Parent Group";
@@ -17,14 +13,10 @@ function MCQDashboardListItem({
     ? Object.values(selectedGroupNames2).join(", ")
     : "Child Group";
 
-  console.log("First Group Name", firstGroupName);
-
-  // Total responses from each group
   const totalResponses1 = content.responses.length;
   const totalResponses2 = content2 ? content2.responses.length : 0;
   const totalResponses = totalResponses1 + totalResponses2;
 
-  // Convert response counts into percentages for Group 1
   const dataPoints1 = content
     ? Object.entries(content.subData).map(([option, count]) => ({
         option,
@@ -33,7 +25,6 @@ function MCQDashboardListItem({
       }))
     : [];
 
-  // Convert response counts into percentages for Group 2 (if present)
   const dataPoints2 = content2
     ? Object.entries(content2.subData).map(([option, count]) => ({
         option,
@@ -42,9 +33,6 @@ function MCQDashboardListItem({
       }))
     : [];
 
-  console.log("Converted Data Points:", dataPoints1);
-
-  // Define series data for bar chart (single or comparison mode)
   const series = content2
     ? [
         { data: dataPoints1.map((d) => d.percentage), label: `${firstGroupName} (%)` },
@@ -52,14 +40,10 @@ function MCQDashboardListItem({
       ]
     : [{ data: dataPoints1.map((d) => d.percentage), label: "Responses (%)" }];
 
-  console.log("Series Data:", series);
-
-  // Identify most and least selected options in Group 1
   const sortedData1 = [...dataPoints1].sort((a, b) => b.count - a.count);
   const mostSelected = sortedData1.length ? sortedData1[0] : null;
   const leastSelected = sortedData1.length > 1 ? sortedData1[sortedData1.length - 1] : null;
 
-  // Calculate percentage gap between top 2 choices (F2)
   let percentageDifference = null;
   if (sortedData1.length > 1) {
     const secondMostSelected = sortedData1[1];
@@ -67,7 +51,6 @@ function MCQDashboardListItem({
     percentageDifference = percentageDifference.toFixed(2);
   }
 
-  // Build summary text for single group case (F3)
   let summaryText = "";
   if (sortedData1.length > 0) {
     summaryText += `<strong>${mostSelected.option}</strong> was the most preferred choice, receiving <strong>${mostSelected.percentage}%</strong> of responses.`;
@@ -81,7 +64,6 @@ function MCQDashboardListItem({
     }
   }
 
-  // Build comparison analysis for two groups (F4)
   let comparativeText = "";
   if (content2) {
     const differences = dataPoints1.map((d, index) => ({
@@ -100,7 +82,6 @@ function MCQDashboardListItem({
     });
   }
 
-  // Construct x-axis labels including group-wise counts
   const xAxisData = dataPoints1.map((d, index) => {
     if (content2) {
       return `${d.option}\n${firstGroupName}: ${d.count} | ${secondGroupName}: ${dataPoints2[index]?.count || 0}`;
@@ -111,48 +92,23 @@ function MCQDashboardListItem({
 
   return (
     <div className="mcq-dashboard">
-      <div className="mcq-dashboard-inner p-3">
-        {/* Question text and total responses */}
-        <div className="mcq-dashboard-question">{content?.question}</div>
-        <div className="mcq-dashboard-norQuestion">{totalResponses} responses</div>
-
-        {/* Summary and comparison layout */}
-        <div className="mcq-dashboard-summary-container" style={{ display: "flex", justifyContent: "space-between" }}>
-          <div className="mcq-dashboard-summary" style={{ width: "48%", textAlign: "left" }}>
-            {mostSelected && (
-              <p>
-                <strong>Most Selected:</strong> {mostSelected.option} ({mostSelected.count} responses)
-              </p>
-            )}
-            {leastSelected && (
-              <p>
-                <strong>Least Selected:</strong> {leastSelected.option} ({leastSelected.count} responses)
-              </p>
-            )}
-            {percentageDifference && (
-              <p>
-                <strong>Percentage Difference:</strong> {percentageDifference}%
-              </p>
-            )}
-          </div>
-
-          {/* Render comparison or summary text */}
-          <div
-            className="mcq-dashboard-summary-text"
-            style={{ width: "48%", textAlign: "left" }}
-            dangerouslySetInnerHTML={{
-              __html: content2 ? comparativeText : summaryText,
-            }}
-          ></div>
-        </div>
-
-        {/* Horizontal Bar Chart Visualization */}
+      <div
+        className="mcq-dashboard-inner"
+        style={{
+          padding: "24px 32px",
+          backgroundColor: "#fff",
+          borderRadius: "12px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        }}
+      >
+        {/* Bar Chart */}
         <div
           className="mcq-dashboard-bar-chart"
           style={{
             display: "flex",
             justifyContent: "center",
-            padding: "10px 20px",
+            padding: "0 10px",
+            marginBottom: "24px",
           }}
         >
           <BarChart
@@ -163,7 +119,6 @@ function MCQDashboardListItem({
                 labelStyle: {
                   fontSize: 14,
                   fontWeight: "bold",
-                  textAlign: "left",
                   whiteSpace: "pre-wrap",
                   lineHeight: "1.3",
                 },
@@ -184,12 +139,109 @@ function MCQDashboardListItem({
             margin={{ left: 220, right: 20, top: 30, bottom: 50 }}
           />
         </div>
+
+        {/* Summary and Analysis */}
+        <div
+          className="mcq-dashboard-summary-container"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "stretch", // Ensures even height
+            gap: "24px",
+            marginBottom: "8px",
+          }}
+        >
+          <div
+            className="mcq-dashboard-summary"
+            style={{
+              width: "50%",
+              fontSize: "15px",
+              lineHeight: "1.5",
+              marginBottom: "4px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
+          >
+            {mostSelected && (
+              <p style={{ marginBottom: "8px" }}>
+                <strong>Most Selected:</strong> {mostSelected.option} ({mostSelected.count} responses)
+              </p>
+            )}
+            {leastSelected && (
+              <p style={{ marginBottom: "8px" }}>
+                <strong>Least Selected:</strong> {leastSelected.option} ({leastSelected.count} responses)
+              </p>
+            )}
+            {percentageDifference && (
+              <p style={{ marginBottom: "8px" }}>
+                <strong>Percentage Difference:</strong> {percentageDifference}%
+              </p>
+            )}
+          </div>
+
+          <div
+            className="mcq-dashboard-summary-text"
+            style={{ width: "50%", fontSize: "15px", lineHeight: "1.5" }}
+            dangerouslySetInnerHTML={{
+              __html: content2 ? comparativeText : summaryText,
+            }}
+          ></div>
+        </div>
+
+        {/* Divider */}
+        <hr style={{ margin: "0px 0 4px", border: "none", borderTop: "1px solid #eee" }} />
+
+        {/* Footer */}
+        <div
+          className="mcq-dashboard-footer"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "0px",
+            paddingTop: "0px",
+            gap: "12px",
+            flexWrap: "wrap", // Responsive fallback
+          }}
+        >
+          <div
+            className="mcq-dashboard-question"
+            style={{
+              fontSize: "16px",
+              fontWeight: "600",
+              margin: 0,
+              padding: 0,
+              lineHeight: "1.2",
+              whiteSpace: "nowrap", // Prevents wrap
+            }}
+          >
+            {content?.question}
+          </div>
+
+          <div
+            className="mcq-dashboard-norQuestion"
+            style={{
+              fontSize: "14px",
+              fontWeight: "400",
+              color: "#666",
+              margin: 0,
+              padding: 0,
+              lineHeight: "1.2",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {totalResponses} responses
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 export default MCQDashboardListItem;
+
+
 
 
 // import { BarChart } from "@mui/x-charts/BarChart";
@@ -200,8 +252,10 @@ export default MCQDashboardListItem;
 //   selectedGroupNames1,
 //   selectedGroupNames2,
 // }) {
+//   // Debug logs for developer reference
 //   console.log("Selected Group Names 1", selectedGroupNames1);
 //
+//   // Determine group names for display
 //   const firstGroupName = content2
 //     ? Object.values(selectedGroupNames1).join(", ")
 //     : "Parent Group";
@@ -211,12 +265,12 @@ export default MCQDashboardListItem;
 //
 //   console.log("First Group Name", firstGroupName);
 //
-//   // Total responses for each group
+//   // Total responses from each group
 //   const totalResponses1 = content.responses.length;
 //   const totalResponses2 = content2 ? content2.responses.length : 0;
 //   const totalResponses = totalResponses1 + totalResponses2;
 //
-//   // Convert raw counts to percentages
+//   // Convert response counts into percentages for Group 1
 //   const dataPoints1 = content
 //     ? Object.entries(content.subData).map(([option, count]) => ({
 //         option,
@@ -225,6 +279,7 @@ export default MCQDashboardListItem;
 //       }))
 //     : [];
 //
+//   // Convert response counts into percentages for Group 2 (if present)
 //   const dataPoints2 = content2
 //     ? Object.entries(content2.subData).map(([option, count]) => ({
 //         option,
@@ -235,6 +290,7 @@ export default MCQDashboardListItem;
 //
 //   console.log("Converted Data Points:", dataPoints1);
 //
+//   // Define series data for bar chart (single or comparison mode)
 //   const series = content2
 //     ? [
 //         { data: dataPoints1.map((d) => d.percentage), label: `${firstGroupName} (%)` },
@@ -244,12 +300,12 @@ export default MCQDashboardListItem;
 //
 //   console.log("Series Data:", series);
 //
-//   // **Determine Most & Least Selected Options**
+//   // Identify most and least selected options in Group 1
 //   const sortedData1 = [...dataPoints1].sort((a, b) => b.count - a.count);
 //   const mostSelected = sortedData1.length ? sortedData1[0] : null;
 //   const leastSelected = sortedData1.length > 1 ? sortedData1[sortedData1.length - 1] : null;
 //
-//   // **Calculate Percentage Difference**
+//   // Calculate percentage gap between top 2 choices (F2)
 //   let percentageDifference = null;
 //   if (sortedData1.length > 1) {
 //     const secondMostSelected = sortedData1[1];
@@ -257,7 +313,7 @@ export default MCQDashboardListItem;
 //     percentageDifference = percentageDifference.toFixed(2);
 //   }
 //
-//   // **Generate Summary for F3**
+//   // Build summary text for single group case (F3)
 //   let summaryText = "";
 //   if (sortedData1.length > 0) {
 //     summaryText += `<strong>${mostSelected.option}</strong> was the most preferred choice, receiving <strong>${mostSelected.percentage}%</strong> of responses.`;
@@ -271,7 +327,7 @@ export default MCQDashboardListItem;
 //     }
 //   }
 //
-//   // **Comparative Analysis for F4 (If Two Groups Exist)**
+//   // Build comparison analysis for two groups (F4)
 //   let comparativeText = "";
 //   if (content2) {
 //     const differences = dataPoints1.map((d, index) => ({
@@ -290,7 +346,7 @@ export default MCQDashboardListItem;
 //     });
 //   }
 //
-//   // **Updated X-Axis Labels with Proper Formatting**
+//   // Construct x-axis labels including group-wise counts
 //   const xAxisData = dataPoints1.map((d, index) => {
 //     if (content2) {
 //       return `${d.option}\n${firstGroupName}: ${d.count} | ${secondGroupName}: ${dataPoints2[index]?.count || 0}`;
@@ -302,10 +358,11 @@ export default MCQDashboardListItem;
 //   return (
 //     <div className="mcq-dashboard">
 //       <div className="mcq-dashboard-inner p-3">
+//         {/* Question text and total responses */}
 //         <div className="mcq-dashboard-question">{content?.question}</div>
 //         <div className="mcq-dashboard-norQuestion">{totalResponses} responses</div>
 //
-//         {/* F2 and Either F3 (Summary) or F4 (Comparison) Side by Side */}
+//         {/* Summary and comparison layout */}
 //         <div className="mcq-dashboard-summary-container" style={{ display: "flex", justifyContent: "space-between" }}>
 //           <div className="mcq-dashboard-summary" style={{ width: "48%", textAlign: "left" }}>
 //             {mostSelected && (
@@ -324,15 +381,18 @@ export default MCQDashboardListItem;
 //               </p>
 //             )}
 //           </div>
+//
+//           {/* Render comparison or summary text */}
 //           <div
 //             className="mcq-dashboard-summary-text"
 //             style={{ width: "48%", textAlign: "left" }}
 //             dangerouslySetInnerHTML={{
 //               __html: content2 ? comparativeText : summaryText,
-//             }} // Inject summary or comparative text dynamically
+//             }}
 //           ></div>
 //         </div>
 //
+//         {/* Horizontal Bar Chart Visualization */}
 //         <div
 //           className="mcq-dashboard-bar-chart"
 //           style={{
@@ -357,8 +417,8 @@ export default MCQDashboardListItem;
 //             ]}
 //             layout="horizontal"
 //             series={series}
-//             width={750} // Increased width for better spacing
-//             height={450} // Increased height for better readability
+//             width={750}
+//             height={450}
 //             colors={content2 ? ["#f4a261", "#2a9d8f"] : ["#f4a261"]}
 //             slotProps={{
 //               legend: {
@@ -367,7 +427,7 @@ export default MCQDashboardListItem;
 //                 padding: 10,
 //               },
 //             }}
-//             margin={{ left: 220, right: 20, top: 30, bottom: 50 }} // Further increased left margin
+//             margin={{ left: 220, right: 20, top: 30, bottom: 50 }}
 //           />
 //         </div>
 //       </div>
