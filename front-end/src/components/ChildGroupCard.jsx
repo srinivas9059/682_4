@@ -1,98 +1,110 @@
-function ChildGroupCard({
-  group,
-  handleAddFormGroup,
+import Box from "@mui/material/Box";
+import Modal from "@mui/material/Modal";
+import GroupListItem from "./GroupListItem";
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import { useEffect, useState } from "react";
+import { Button } from "@mantine/core";
+
+const ChildGroupCard = ({
+  content,
+  updateFormGroup,
   handleDeleteFormGroup,
-  openModal,
-  handleOpenModal,
-  handleCloseModal,
-}) {
-  const [groupName, setGroupName] = useState("Sub Group");
-
-  const handleOpenModals = (groupID) => {
-    console.log("Opening modal for group ID:", groupID);
-    handleOpenModal(groupID);
-  };
-
-  const handleAddGroup = () => {
-    console.log("Adding group with name:", groupName);
-    handleAddFormGroup(groupName, group.groupID);
-    handleCloseModal();
-  };
-
+  handleAddFormGroup,
+  parentGroup,
+}) => {
+  const [groupName, setGroupName] = useState("");
+  const [filteredGroups, setFilteredGroups] = useState([]);
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
   const handleClose = () => {
-    handleCloseModal();
-    setGroupName("Sub Group");
+    setGroupName("");
+    setOpen(false);
+  };
+
+  useEffect(() => {
+    setFilteredGroups(
+      content.filter((group) => {
+        if (parentGroup.childGroups.includes(group.groupID)) return true;
+        else return false;
+      })
+    );
+  }, [content]);
+
+  const style = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 400,
+    bgcolor: "background.paper",
+    // border: "1px solid #000",
+    borderRadius: "5px",
+    boxShadow: 24,
+    p: 4,
   };
 
   return (
-    <TreeItem
-      key={group.groupID}
-      itemId={group.groupID.toString()}
-      label={
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          {group.groupName}
-          <div>
-            <Tooltip title="Add Child Group">
-              <IconButton
-                onClick={() => handleOpenModals(group.groupID)}
-                color="primary"
-              >
+    <div>
+      <div className="sub-groups-heading">Sub Groups</div>
+      {/* <div className="settings-divider"></div> */}
+      <div className="sub-groups-all-groups-list">
+        {filteredGroups.map((group) => (
+          <GroupListItem
+            key={group.groupID}
+            content={group}
+            updateFormGroup={updateFormGroup}
+            handleDeleteFormGroup={handleDeleteFormGroup}
+            parentGroup={parentGroup}
+          />
+        ))}
+        <div className="d-flex justify-content-end mt-3">
+          <div className="add-sub-group-btn-div">
+            <Tooltip title="Add Group">
+              <IconButton onClick={handleOpen} className="text-white">
                 <AddCircleOutlineRoundedIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete Group">
-              <IconButton
-                onClick={() =>
-                  handleDeleteFormGroup(group.groupID, group.parentID)
-                }
-                color="secondary"
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
           </div>
+          <Modal
+            open={open}
+            onClose={handleClose}
+            aria-labelledby="modal-modal-title"
+            aria-describedby="modal-modal-description"
+          >
+            <Box sx={style}>
+              <div>
+                <div className="mb-2 poppins-semibold text-secondary">
+                  Enter a sub group name
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    className="form-control"
+                    onChange={(e) => setGroupName(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="text-center mt-4">
+                <Button
+                  variant="filled"
+                  disabled={groupName.length === 0 ? true : false}
+                  onClick={() => {
+                    handleAddFormGroup(groupName, parentGroup.parentGroupID);
+                    handleClose();
+                  }}
+                  color="#edbb5f"
+                >
+                  Add Sub Group
+                </Button>
+              </div>
+            </Box>
+          </Modal>
         </div>
-      }
-    >
-      {group.childGroups?.map((childGroup) => (
-        <ChildGroupCard
-          key={childGroup.groupID}
-          group={childGroup}
-          handleAddFormGroup={handleAddFormGroup}
-          handleDeleteFormGroup={handleDeleteFormGroup}
-          openModal={openModal === childGroup.groupID}
-          handleOpenModal={handleOpenModal}
-          handleCloseModal={handleCloseModal}
-        />
-      ))}
-      {openModal === group.groupID && (
-        <Modal open onClose={handleClose}>
-          <Box sx={{ padding: 2 }}>
-            <TextField
-              label="Group Name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              fullWidth
-            />
-            <Button
-              onClick={handleAddGroup}
-              color="primary"
-              variant="contained"
-              style={{ marginTop: 20 }}
-            >
-              Add Group
-            </Button>
-          </Box>
-        </Modal>
-      )}
-    </TreeItem>
+      </div>
+    </div>
   );
-}
+};
 
 export default ChildGroupCard;

@@ -1,4 +1,3 @@
-import React, { useState, useRef } from "react";
 import { TextInput } from "@mantine/core";
 import { Radio } from "@mantine/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -34,8 +33,6 @@ function MCQuestion({ content, updateQuestion }) {
     useSensor(KeyboardSensor, { coordinateGetter: closestCenter })
   );
 
-
-
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
 
@@ -49,8 +46,6 @@ function MCQuestion({ content, updateQuestion }) {
       <DragHandleIcon />
     </div>
   );
-
-
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -89,6 +84,15 @@ function MCQuestion({ content, updateQuestion }) {
     });
   };
 
+  const handleAddOption = () => {
+    const newOptionID = Math.random().toString(36).substr(2, 9); // Generate a random ID
+    const newOption = { optionID: newOptionID, optionValue: "" };
+    updateQuestion({
+      ...content,
+      options: [...content.options, newOption],
+    });
+  };
+
   return (
     <div className="mcq-question">
       <div className="question-mcq-type">
@@ -106,13 +110,43 @@ function MCQuestion({ content, updateQuestion }) {
           }}
           onChange={(e) => {
             mcQuestion.question = e.target.value;
-            //console.log(mcQuestion.question);
             updateQuestion(mcQuestion);
           }}
           value={content.question}
         />
       </div>
       <div className="all-options">
+        {/* <Radio.Group>
+          {content.options.map((option, i) => (
+            <div key={i} className="option">
+              <Radio
+                value={`option.optionValue ${i + 1}`}
+                id={`option.optionID${i + 1}`}
+                className="align-self-center me-2"
+                color="#edbb5f"
+                disabled
+              />
+              <TextInput
+                variant="filled"
+                placeholder="Enter option"
+                onChange={(e) => {
+                  // mcQuestion.options[i] = e.target.value;
+                  mcQuestion.options[i].optionValue = e.target.value;
+                  updateQuestion(mcQuestion);
+                }}
+                value={option.optionValue}
+                className="w-100"
+              />
+              <Tooltip title="Remove">
+                <IconButton onClick={() => handleDeleteOption(i)}>
+                  <CloseIcon />
+                </IconButton>
+              </Tooltip>
+            </div>
+          ))}
+
+        </Radio.Group> */}
+
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

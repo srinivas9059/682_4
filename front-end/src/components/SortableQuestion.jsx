@@ -16,7 +16,13 @@ function SortableQuestion({
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
+  /*  const dragHandle = (
+    <div {...listeners} {...attributes} style={{ cursor: "grab" }}>
+      <div className="drag-handle">
+        <DragHandleIcon />
+      </div>
+    </div>
+  ); */
   const dragHandle = (
     <div
       className="drag-handle display-flex justify-center align-center"
@@ -37,7 +43,6 @@ function SortableQuestion({
   return (
     <div ref={setNodeRef} style={style}>
       <Question
-        id={id}
         content={content}
         updateQuestion={updateQuestion}
         handleDeleteQuestion={handleDeleteQuestion}

@@ -1,7 +1,6 @@
 import { TextInput } from "@mantine/core";
 
 function FormTitleDescription({ store, formContent }) {
-  console.log("Displaying formContent", formContent);
   return (
     <div className="form-title-description">
       <div className="form-title-description-inner p-3">

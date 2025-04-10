@@ -17,13 +17,8 @@ function Question({
   handleDuplicateQuestion,
   dragHandle,
 }) {
-
+  console.log(content);
   const [questionType, setQuestionType] = useState(content.questionType);
-
-  const handleDeleteQuestions = (id) => {
-    console.log("iding", id);
-    handleDeleteQuestion(id);
-  };
 
   return (
     <div className="form-question">
@@ -60,7 +55,7 @@ function Question({
                     updateQuestion({
                       questionID: content.questionID,
                       questionType: 1,
-                      question: content.question,
+                      question: "",
                       options: [{}],
                     });
                   } else if (questionType !== 2 && _value === "Short Answer") {
@@ -68,14 +63,14 @@ function Question({
                     updateQuestion({
                       questionID: content.questionID,
                       questionType: 2,
-                      question: content.question,
+                      question: "",
                     });
                   } else if (questionType !== 3 && _value === "Likert Scale") {
                     setQuestionType(3);
                     updateQuestion({
                       questionID: content.questionID,
                       questionType: 3,
-                      question: content.question,
+                      question: "",
                       upperLimit: "5",
                       labels: ["", "", "", "", ""],
                     });
@@ -105,7 +100,7 @@ function Question({
               <Tooltip title="Delete Question">
                 <IconButton
                   onClick={() => {
-                    handleDeleteQuestions(id);
+                    handleDeleteQuestion(id);
                     notifications.show({
                       color: "#edbb5f",
                       message: "Question Deleted",

@@ -1,132 +1,62 @@
-import { BarChart } from "@mui/x-charts/BarChart";
+import { PieChart } from "@mui/x-charts/PieChart";
 
-function MCQDashboardListItem({
-  content,
-  content2,
-  selectedGroupNames1,
-  selectedGroupNames2,
-}) {
-  const firstGroupName = content2
-    ? Object.values(selectedGroupNames1).join(", ")
-    : "Parent Group";
-  const secondGroupName = content2
-    ? Object.values(selectedGroupNames2).join(", ")
-    : "Child Group";
-
-  const totalResponses1 = content.responses.length;
-  const totalResponses2 = content2 ? content2.responses.length : 0;
-  const totalResponses = totalResponses1 + totalResponses2;
-
-  const dataPoints1 = content
-    ? Object.entries(content.subData).map(([option, count]) => ({
-        option,
-        count,
-        percentage: totalResponses1 > 0 ? ((count / totalResponses1) * 100).toFixed(2) : 0,
-      }))
-    : [];
-
-  const dataPoints2 = content2
-    ? Object.entries(content2.subData).map(([option, count]) => ({
-        option,
-        count,
-        percentage: totalResponses2 > 0 ? ((count / totalResponses2) * 100).toFixed(2) : 0,
-      }))
-    : [];
-
-  const series = content2
-    ? [
-        { data: dataPoints1.map((d) => d.percentage), label: `${firstGroupName} (%)` },
-        { data: dataPoints2.map((d) => d.percentage), label: `${secondGroupName} (%)` },
-      ]
-    : [{ data: dataPoints1.map((d) => d.percentage), label: "Responses (%)" }];
-
-  const sortedData1 = [...dataPoints1].sort((a, b) => b.count - a.count);
-  const mostSelected = sortedData1.length ? sortedData1[0] : null;
-  const leastSelected = sortedData1.length > 1 ? sortedData1[sortedData1.length - 1] : null;
-
-  let percentageDifference = null;
-  if (sortedData1.length > 1) {
-    const secondMostSelected = sortedData1[1];
-    percentageDifference = ((mostSelected.count - secondMostSelected.count) / totalResponses1) * 100;
-    percentageDifference = percentageDifference.toFixed(2);
-  }
-
-  let summaryText = "";
-  if (sortedData1.length > 0) {
-    summaryText += `<strong>${mostSelected.option}</strong> was the most preferred choice, receiving <strong>${mostSelected.percentage}%</strong> of responses.`;
-
-    if (sortedData1.length > 1) {
-      summaryText += ` It was followed by <strong>${sortedData1[1].option}</strong> at <strong>${sortedData1[1].percentage}%</strong>.`;
-    }
-
-    if (sortedData1.length > 2) {
-      summaryText += ` The least chosen option was <strong>${leastSelected.option}</strong>, making up only <strong>${leastSelected.percentage}%</strong> of responses.`;
-    }
-  }
-
-  let comparativeText = "";
-  if (content2) {
-    const differences = dataPoints1.map((d, index) => ({
-      option: d.option,
-      diff: Math.abs(d.percentage - (dataPoints2[index]?.percentage || 0)),
-      preferredBy:
-        d.percentage > (dataPoints2[index]?.percentage || 0) ? firstGroupName : secondGroupName,
-    }));
-
-    const largestDiff = differences.reduce((max, d) => (d.diff > max.diff ? d : max), differences[0]);
-
-    comparativeText = `<strong>${largestDiff.preferredBy}</strong> shows the strongest preference difference for <strong>${largestDiff.option}</strong> with <strong>${largestDiff.diff}%</strong> gap.`;
-
-    differences.forEach((d) => {
-      comparativeText += `<br/>${d.preferredBy} prefers <strong>${d.option}</strong> more (${d.diff.toFixed(2)}% gap).`;
-    });
-  }
-
-  const xAxisData = dataPoints1.map((d, index) => {
-    if (content2) {
-      return `${d.option}\n${firstGroupName}: ${d.count} | ${secondGroupName}: ${dataPoints2[index]?.count || 0}`;
-    } else {
-      return `${d.option} (${d.count})`;
-    }
+function MCQDashboardListItem({ content }) {
+  const dataPoints = [];
+  content.options.forEach((option) => {
+    // if (content.norQuestion !== 0)
+    //   var dataPoint = {
+    //     value: ((content.subData[option] / content.norQuestion) * 100).toFixed(
+    //       1
+    //     ),
+    //     label: option,
+    //   };
+    // else
+    //   var dataPoint = {
+    //     value: "0.0",
+    //     label: option,
+    //   };
+    console.log("option323", option);
+    console.log(content.subData[option.optionValue]);
+    var dataPoint = {
+      value: content.subData[option.optionValue],
+      label: option.optionValue,
+    };
+    dataPoints.push(dataPoint);
   });
+
+  console.log("subData", content.subData);
+
+  const series = {
+    data: dataPoints,
+    highlightScope: { faded: "global", highlighted: "item" },
+    faded: { innerRadius: 30, additionalRadius: -30, color: "gray" },
+  };
 
   return (
     <div className="mcq-dashboard">
-      <div
-        className="mcq-dashboard-inner"
-        style={{
-          padding: "24px 32px",
-          backgroundColor: "#fff",
-          borderRadius: "12px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-        }}
-      >
-        {/* Bar Chart */}
-        <div
-          className="mcq-dashboard-bar-chart"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "0 10px",
-            marginBottom: "24px",
-          }}
-        >
-          <BarChart
-            yAxis={[
-              {
-                scaleType: "band",
-                data: xAxisData,
-                labelStyle: {
-                  fontSize: 14,
-                  fontWeight: "bold",
-                },
-              },
+      <div className="mcq-dashboard-inner p-3">
+        <div className="mcq-dashboard-question">{content.question}</div>
+        <div className="mcq-dashboard-norQuestion">
+          {content.norQuestion} responses
+        </div>
+        <div className="mcq-dashboard-pie-chart">
+          <PieChart
+            // colors={["#ff6b6b", "#4db6ac", "#ffd54f", "#607d8b"]}
+            // colors={["#ff6b6b", "#304ffe", "#ffd54f", "#b0bec5"]}
+            colors={[
+              "#fbb4ae",
+              "#b3cde3",
+              "#ccebc5",
+              "#decbe4",
+              "#fed9a6",
+              "#ffffcc",
+              "#e5d8bd",
+              "#fddaec",
+              "#f2f2f2",
             ]}
-            layout="horizontal"
-            series={series}
-            width={500}
-            height={300}
-            colors={content2 ? ["#edbb5f", "#4db6ac"] : ["#edbb5f"]}
+            series={[series]}
+            width={450}
+            height={450}
             slotProps={{
               legend: {
                 direction: "row",
@@ -134,38 +64,9 @@ function MCQDashboardListItem({
                 padding: 0,
               },
             }}
+            margin={{ top: 100, bottom: 150, left: 100, right: 100 }}
           />
         </div>
-
-        {/* Summary Text */}
-        <div
-          className="mcq-dashboard-summary"
-          style={{
-            marginTop: "16px",
-            padding: "16px",
-            backgroundColor: "#f8f9fa",
-            borderRadius: "8px",
-            fontSize: "14px",
-            lineHeight: "1.5",
-          }}
-          dangerouslySetInnerHTML={{ __html: summaryText }}
-        />
-
-        {/* Comparative Analysis */}
-        {content2 && (
-          <div
-            className="mcq-dashboard-comparative"
-            style={{
-              marginTop: "16px",
-              padding: "16px",
-              backgroundColor: "#f0f7ff",
-              borderRadius: "8px",
-              fontSize: "14px",
-              lineHeight: "1.5",
-            }}
-            dangerouslySetInnerHTML={{ __html: comparativeText }}
-          />
-        )}
       </div>
     </div>
   );

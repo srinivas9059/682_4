@@ -8,20 +8,6 @@ html body {
   display: flex;
   justify-content: center;
 }
-<<<<<<< HEAD
-=======
-/* :root {
-  --primary-color: #000;
-}
-
-body {
-  color: var(--primary-color);
-  font-family: var(--font-family, Arial), sans-serif;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
-} */
->>>>>>> srinivas-backendd
 
 li .nav-link,
 li .nav-link:hover {
@@ -420,17 +406,7 @@ div.user-form-page input[type="radio"] {
   padding: 2% 5% 2% 5%;
 }
 
-.dashboard-heading-inner {
-  width: 80%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  background-color: #ffffff;
-  border-radius: 5px;
-  border: #c2c2c2 solid 1px;
-  box-shadow: 1px 1px 3px 0px rgba(194, 194, 194, 1);
-}
-
+.dashboard-heading-inner,
 .mcq-dashboard-inner,
 .saq-dashboard-inner,
 .lsq-dashboard-inner {
@@ -441,14 +417,6 @@ div.user-form-page input[type="radio"] {
   border-radius: 5px;
   border: #c2c2c2 solid 1px;
   box-shadow: 1px 1px 3px 0px rgba(194, 194, 194, 1);
-}
-
-.word-cloud-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 20px 0;
 }
 
 .dashboard-summary-section {
@@ -483,7 +451,7 @@ div.user-form-page input[type="radio"] {
 }
 
 .dashboard-group-filter {
-  width: 100%;
+  width: 45%;
 }
 
 .dashboard-groups-names-headings {
