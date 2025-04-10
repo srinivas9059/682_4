@@ -1,0 +1,759 @@
+import { useEffect, useState } from "react";
+import FormTitleDescription from "./FormTitleDescription";
+import Settings from "./Settings";
+import Dashboard from "./Dashboard";
+import { useAuth } from "../contexts/AuthContext";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import TextSnippetRoundedIcon from "@mui/icons-material/TextSnippetRounded";
+import { Button, Group } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import Section from "./Section";
+import { arrayMove } from "@dnd-kit/sortable";
+
+
+function Form() {
+  const [questions, setQuestions] = useState([]);
+  const [formTitle, setFormTitle] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formGroups, setFormGroups] = useState([]);
+  const [formParentGroups, setFormParentGroups] = useState([]);
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+  const [formData, setFormData] = useState({ formSections: [] });
+  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+  
+    let formID = localStorage.getItem("formID");
+if (!formID) {
+  // fallback if user came from expired page
+  formID = localStorage.getItem("lastVisitedFormID");
+  localStorage.setItem("formID", formID); // restore so it behaves normally again
+}
+
+    localStorage.setItem("lastVisitedFormID", formID);
+
+    if (!formID) {
+      console.warn("formID is missing — cannot fetch form data.");
+      return;
+    }
+  
+    fetchFormData(formID);
+  }, [currentUser, navigate]);
+  
+
+  useEffect(() => {
+    console.log("Form Data updated:", formData);
+  }, [formData]);
+
+  /*  useEffect(() => {
+    console.log("Form Title updated:", formTitle);
+    console.log("Form Description updated:", formDescription);
+  }, [formTitle, formDescription]); */
+  const fetchFormData = async (formID) => {
+    if (!formID) return;
+  
+    try {
+      const response = await fetch(`${BACKEND_URL}/getFormData/${formID}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFormData(data.form);
+        setFormTitle(data.form.formTitle);
+        setFormDescription(data.form.formDescription);
+        setFormGroups(data.form.formGroups);
+        setFormParentGroups(data.form.formParentGroups);
+        console.log("Form Data fetched:", data.form);
+      } else {
+        console.error("Failed to load form data.");
+      }
+    } catch (error) {
+      console.error("Error fetching form data: ", error);
+    }
+    setLoading(false);
+  };  
+
+  const updateQuestion = (sectionID, questionID, updatedQuestion) => {
+    console.log("Updating question", sectionID, questionID, updatedQuestion);
+    console.log("Updating question section", sectionID);
+    console.log("Available sections", formData.formSections);
+
+    setFormData((currentFormData) => {
+      const newSections = currentFormData.formSections.map((section) => {
+        if (section.sectionID === sectionID) {
+          const newQuestions = section.questions.map((question) => {
+            if (question.questionID === questionID) {
+              console.log(
+                "Question found, replacing with updated question:",
+                updatedQuestion
+              );
+              return updatedQuestion;
+            }
+            return question;
+          });
+
+          return { ...section, questions: newQuestions };
+        }
+        return section;
+      });
+
+      console.log("New Sections after update:", newSections);
+      return { ...currentFormData, formSections: newSections };
+    });
+  };
+
+  const handleAddSection = () => {
+    // const currentMaxID = formData.formSections.reduce((max, section) => Math.max(max, section.sectionID), 1000);
+
+    const newSection = {
+      sectionID: Math.floor(Math.random() * 9000) + 1000,
+      questions: [],
+    };
+    const updatedSections = [...formData.formSections, newSection];
+    setFormData({ ...formData, formSections: updatedSections });
+    // updateFormSections(updatedSections);
+  };
+
+  const handleDeleteSection = async (sectionID) => {
+    const updatedSections = formData.formSections.filter(
+      (section) => section.sectionID !== sectionID
+    );
+    // await updateFormSections(updatedSections);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const fromQuestionId = active.id;
+      const toQuestionId = over.id;
+
+      let fromSectionIndex = -1,
+        fromQuestionIndex = -1,
+        toQuestionIndex = -1;
+
+      formData.formSections.forEach((section, sectionIndex) => {
+        const fromIndex = section.questions.findIndex(
+          (q) => q.questionID === fromQuestionId
+        );
+        const toIndex = section.questions.findIndex(
+          (q) => q.questionID === toQuestionId
+        );
+
+        if (fromIndex !== -1) {
+          fromSectionIndex = sectionIndex;
+          fromQuestionIndex = fromIndex;
+        }
+        if (toIndex !== -1 && fromSectionIndex === sectionIndex) {
+          toQuestionIndex = toIndex;
+        }
+      });
+
+      if (
+        fromSectionIndex !== -1 &&
+        toQuestionIndex !== -1 &&
+        fromQuestionIndex !== -1
+      ) {
+        const newQuestions = arrayMove(
+          formData.formSections[fromSectionIndex].questions,
+          fromQuestionIndex,
+          toQuestionIndex
+        );
+
+        const newSections = formData.formSections.map((section, index) => {
+          if (index === fromSectionIndex) {
+            return { ...section, questions: newQuestions };
+          }
+          return section;
+        });
+
+        setFormData({ ...formData, formSections: newSections });
+      }
+    }
+  };
+
+  if (loading) {
+    return <div>Loading form...</div>;
+  }
+
+  if (!formData || !formData.formSections) {
+    return <div>Invalid or expired form.</div>;
+  }
+  
+  const storeTitleDescription = (arr) => {
+    console.log("Title and Description logged", arr);
+    setFormTitle(arr[0]);
+    console.log("Form Title dwfc", formTitle);
+    setFormDescription(arr[1]);
+    console.log("Form Description", formDescription);
+  };
+
+  const handleDeleteQuestion = (sectionID, questionID) => {
+    console.log("Deleting question", sectionID, questionID);
+    const newSections = formData.formSections.map((section) => {
+      if (section.sectionID === sectionID) {
+        const filteredQuestions = section.questions.filter(
+          (question) => question.questionID !== questionID
+        );
+        return { ...section, questions: filteredQuestions };
+      }
+      return section;
+    });
+    setFormData({ ...formData, formSections: newSections });
+  };
+
+  const handleAddQuestion = (sectionID) => {
+    const newQuestion = {
+      questionID: Math.floor(Math.random() * 9000) + 1000,
+      questionType: 1,
+      question: "",
+      options: [],
+    };
+
+    const newSections = formData.formSections.map((section) => {
+      if (section.sectionID === sectionID) {
+        return { ...section, questions: [...section.questions, newQuestion] };
+      }
+      return section;
+    });
+
+    setFormData({ ...formData, formSections: newSections });
+  };
+
+  const handleDuplicateQuestion = (sectionID, q) => {
+    console.log("Duplicating question", q);
+    const newSections = formData.formSections.map((section) => {
+      if (section.sectionID === sectionID) {
+        let duplicateQuestion;
+        if (q.questionType == 1)
+          duplicateQuestion = {
+            questionID: Math.floor(Math.random() * 9000) + 1000,
+            questionType: 1,
+            question: `[COPY] ${q.question}`,
+            options: q.options,
+          };
+        else if (q.questionType == 2)
+          duplicateQuestion = {
+            questionID: Math.floor(Math.random() * 9000) + 1000,
+            questionType: 2,
+            question: `[COPY] ${q.question}`,
+          };
+        else if (q.questionType == 3)
+          duplicateQuestion = {
+            questionID: Math.floor(Math.random() * 9000) + 1000,
+            questionType: 3,
+            question: `[COPY] ${q.question}`,
+            upperLimit: q.upperLimit,
+            labels: q.labels,
+          };
+        return {
+          ...section,
+          questions: [...section.questions, duplicateQuestion],
+        };
+      }
+      return section;
+    });
+    setFormData({ ...formData, formSections: newSections });
+  };
+  const updateFormGroup = (newG) => {
+    console.log("Updating form group", newG);
+    setFormGroups((oldGroups) => {
+      const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
+      console.log("Index of group to be updated", index);
+      const newGroups = [...oldGroups];
+      newGroups[index] = newG;
+      return newGroups;
+    });
+    console.log("Logging form groups after update", formGroups);
+    handleSave();
+  };
+
+  const updateFormParentGroup = (newG) => {
+    console.log("Updating form group", newG);
+    setFormParentGroups((oldGroups) => {
+      const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
+      console.log("Index of group to be updated", index);
+      const newGroups = [...oldGroups];
+      newGroups[index] = newG;
+      return newGroups;
+    });
+    console.log("Logging form groups after update", formGroups);
+    handleSave();
+  };
+
+  const handleDeleteParentFormGroup = (id) => {
+    if (formParentGroups.length === 1) {
+      alert("Cannot delete. Only 1 parent form group is present !");
+    } else {
+      setFormParentGroups((oldGroups) =>
+        oldGroups.filter((g) => g.groupID !== id)
+      );
+      notifications.show({
+        color: "#edbb5f",
+        message: "Parent group deleted Don't forget to save the form!",
+        autoClose: 2500,
+      });
+    }
+    //handleSave();
+  };
+
+  const handleDeleteFormGroup = (id, groupID) => {
+    if (formGroups.length === 1) {
+      alert("Cannot delete. Only 1 form group is present !");
+    } else {
+      console.log("Deleting form group", id, groupID);
+      setFormGroups((oldGroups) => oldGroups.filter((g) => g.groupID !== id));
+
+      setFormParentGroups((oldFormParentGroups) => {
+        return oldFormParentGroups.map((parentGroup) => {
+          if (parentGroup.groupID === groupID) {
+            return {
+              ...parentGroup,
+              childGroups: parentGroup.childGroups.filter(
+                (groupID) => groupID !== id
+              ),
+            };
+          }
+          return parentGroup;
+        });
+      });
+
+      notifications.show({
+        color: "#edbb5f",
+        message: "Subgroup deleted  Don't forget to save the form!",
+        autoClose: 2500,
+      });
+    }
+    // handleSave();
+  };
+
+  /* const handleAddFormGroup = async (groupID, groupName) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newGroup = json.formGroup;
+
+    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
+
+    setFormParentGroups((oldFormParentGroups) => {
+      return oldFormParentGroups.map((parentGroup) => {
+        if (parentGroup.groupID === groupID) {
+          return {
+            ...parentGroup,
+            childGroups: [...parentGroup.childGroups, newGroup.groupID],
+          };
+        }
+        return parentGroup;
+      });
+    });
+  };
+
+  const handleAddChildFormGroup = async (groupID, groupName) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newGroup = json.formGroup;
+
+    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
+
+    setFormParentGroups((oldFormParentGroups) => {
+      return oldFormParentGroups.map((parentGroup) => {
+        if (parentGroup.groupID === groupID) {
+          return {
+            ...parentGroup,
+            childGroups: [...parentGroup.childGroups, newGroup.groupID],
+          };
+        }
+        return parentGroup;
+      });
+    });
+  };
+
+  const handleAddParentFormGroup = async (parentGroupName) => {
+    console.log(parentGroupName, "to be added");
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newParentGroup = json.formParentGroup;
+    console.log("New Parent Group", newParentGroup);
+    setFormParentGroups((oldFormParentGroups) => [
+      ...oldFormParentGroups,
+      newParentGroup,
+    ]);
+    console.log("Form Parent Groups after adding", formParentGroups);
+  }; */
+
+  const handleAddFormGroup = async (groupID, groupName) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newGroup = json.formGroup;
+
+    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
+
+    setFormParentGroups((oldFormParentGroups) => {
+      return oldFormParentGroups.map((parentGroup) => {
+        if (parentGroup.groupID === groupID) {
+          const updatedParentGroup = {
+            ...parentGroup,
+            childGroups: [...(parentGroup.childGroups || []), newGroup.groupID],
+          };
+          return updatedParentGroup;
+        }
+        return parentGroup;
+      });
+    });
+  };
+
+  const handleAddChildFormGroup = async (groupID, groupName) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newGroup = json.formGroup;
+
+    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
+
+    setFormParentGroups((oldFormParentGroups) => {
+      return oldFormParentGroups.map((parentGroup) => {
+        if (parentGroup.groupID === groupID) {
+          const updatedParentGroup = {
+            ...parentGroup,
+            childGroups: [...(parentGroup.childGroups || []), newGroup.groupID],
+          };
+          return updatedParentGroup;
+        }
+        return parentGroup;
+      });
+    });
+  };
+
+  const handleAddParentFormGroup = async (parentGroupName) => {
+    console.log(parentGroupName, "to be added");
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
+      { method: "GET" }
+    );
+    const json = await response.json();
+    const newParentGroup = json.formParentGroup;
+
+    setFormParentGroups((oldFormParentGroups) => [
+      ...oldFormParentGroups,
+      newParentGroup,
+    ]);
+  };
+
+  /* const updateFormGroup = (newG) => {
+    setFormGroups((oldGroups) => {
+      const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
+      const newGroups = [...oldGroups];
+      newGroups[index] = newG;
+      return newGroups;
+    });
+  };
+
+  const handleDeleteParentFormGroup = (id) => {
+    if (formParentGroups.length === 1)
+      alert("Cannot delete. Only 1 form group is present !");
+    else {
+      setFormParentGroups((oldGroups) => {
+        const newGroups = oldGroups.filter((g) => g.groupID !== id);
+        return newGroups;
+      });
+      notifications.show({
+        color: "#edbb5f",
+        message: "Group Deleted",
+        autoClose: 2500,
+      });
+    }
+  };
+
+  const handleDeleteFormGroup = (id, groupID) => {
+    if (formGroups.length === 1)
+      alert("Cannot delete. Only 1 form group is present !");
+    else {
+      setFormParentGroups((oldFormParentGroups) => {
+        const indexTemp = oldFormParentGroups.findIndex(
+          (parentGroup) => parentGroup.groupID === groupID
+        );
+        const newFormParentGroups = oldFormParentGroups;
+        newFormParentGroups[indexTemp].childGroups = oldFormParentGroups[
+          indexTemp
+        ].childGroups.filter((groupID) => groupID !== id);
+        return newFormParentGroups;
+      });
+
+      setFormGroups((oldGroups) => {
+        return oldGroups.filter((g) => g.groupID !== id);
+      });
+
+      notifications.show({
+        color: "#edbb5f",
+        message: "Group Deleted",
+        autoClose: 2500,
+      });
+    }
+  };
+
+  const handleAddFormGroup = async (groupName, groupID) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
+      {
+        method: "GET",
+      }
+    );
+    const json = await response.json();
+    const newGroup = json.formGroup;
+    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
+    setFormParentGroups(json.formParentGroups);
+  };
+
+  const handleAddParentFormGroup = async (parentGroupName) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
+      {
+        method: "GET",
+      }
+    );
+    const json = await response.json();
+    const newParentGroup = json.formParentGroup;
+    setFormParentGroups((oldFormParentGroups) => [
+      ...oldFormParentGroups,
+      newParentGroup,
+    ]);
+  }; */
+
+  const handleSave = async () => {
+    const id = localStorage.getItem("formID");
+    console.log("Form Data to be saved", formData);
+    const bodyjson = JSON.stringify({
+      formID: id,
+      formTitle: formTitle,
+      formDescription: formDescription,
+      formSections: formData.formSections,
+      formGroups: formGroups,
+      formParentGroups: formParentGroups,
+    });
+    console.log("Form Data to be saved", bodyjson);
+
+    const response = await fetch(`${BACKEND_URL}/updateForm`, {
+      method: "PUT",
+      body: JSON.stringify({
+        formID: id,
+        formTitle: formTitle,
+        formDescription: formDescription,
+        formSections: formData.formSections,
+        formGroups: formGroups,
+        formParentGroups: formParentGroups,
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const json = await response.json();
+    notifications.show({
+      color: "#edbb5f",
+      message: "Form Saved",
+      autoClose: 2500,
+    });
+  };
+
+  return (
+    <div className="form-main-page">
+      <nav className="navbar" id="nav-custom-styles">
+        <div className="container-fluid navbar-container-tabs pt-2">
+          <a className="navbar-brand d-flex app-logo" href="/">
+            <TextSnippetRoundedIcon className="m-1" />
+            <span className="fs-4 ms-1">Forms</span>
+          </a>
+          {/* <div>
+            <Button
+              color="#edbb5f"
+              variant="filled"
+              className="text-black"
+              onClick={handleSave}
+            >
+              Save
+            </Button>
+          </div> */}
+        </div>
+        <div className="w-100 navbar-container-tabs">
+          <ul className="nav nav-tabs" id="myTab" role="tablist">
+            <li className="nav-item" role="presentation">
+              <Link to="/" className="nav-link">
+                <HomeRoundedIcon />
+              </Link>
+            </li>
+            <li className="nav-item" role="presentation">
+              <button
+                className="nav-link active"
+                id="questions-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#questions-tab-pane"
+                type="button"
+                role="tab"
+                aria-controls="questions-tab-pane"
+                aria-selected="true"
+              >
+                Questions
+              </button>
+            </li>
+            <li className="nav-item" role="presentation">
+              <button
+                className="nav-link"
+                id="dashboard-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#dashboard-tab-pane"
+                type="button"
+                role="tab"
+                aria-controls="dashboard-tab-pane"
+                aria-selected="false"
+              >
+                Dashboard
+              </button>
+            </li>
+            <li className="nav-item" role="presentation">
+              <button
+                className="nav-link"
+                id="settings-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#settings-tab-pane"
+                type="button"
+                role="tab"
+                aria-controls="settings-tab-pane"
+                aria-selected="false"
+              >
+                Settings
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <div className="h-100">
+        <div className="tab-content" id="myTabContent">
+          <div
+            className="tab-pane fade show active"
+            id="questions-tab-pane"
+            role="tabpanel"
+            aria-labelledby="questions-tab"
+            tabIndex="0"
+          >
+            <div className="form-questions-tab">
+              <FormTitleDescription
+                store={storeTitleDescription}
+                formContent={[formTitle, formDescription]}
+              />
+              {console.log("formTitle", formTitle)}
+              {console.log("formDescription", formDescription)}
+
+              {formData.formSections.map((section) => (
+                <Section
+                  key={section.sectionID}
+                  section={section}
+                  handleDragEnd={handleDragEnd}
+                  handleAddSection={handleAddSection}
+                  updateQuestion={updateQuestion}
+                  handleDeleteSection={handleDeleteSection}
+                  handleAddQuestion={handleAddQuestion}
+                  handleDeleteQuestion={handleDeleteQuestion}
+                  handleDuplicateQuestion={handleDuplicateQuestion}
+                />
+              ))}
+              {/*  <Button onClick={handleAddSection} style={{ marginTop: "20px" }}>
+                Add New Section
+              </Button> */}
+
+              <div className="p-5 text-center">
+                <Button
+                  onClick={handleAddSection}
+                  color="#333333"
+                  style={{ marginRight: "8%" }}
+                >
+                  Add New Section
+                </Button>
+
+                <Button
+                  color="#edbb5f"
+                  variant="filled"
+                  className="text-black wide-button"
+                  onClick={handleSave}
+                >
+                  Save
+                </Button>
+              </div>
+
+              {/* <div className="add-question">
+                <div className="add-question-inner">
+                  <div className="add-question-btn-div">
+                    <Tooltip title="Add Question">
+                      <IconButton
+                        onClick={handleAddQuestion}
+                        className="text-white"
+                      >
+                        <AddCircleOutlineRoundedIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </div>
+                </div>
+              </div> */}
+            </div>
+          </div>
+          <div
+            className="tab-pane fade"
+            id="dashboard-tab-pane"
+            role="tabpanel"
+            aria-labelledby="dasboard-tab"
+            tabIndex="0"
+          >
+            <Dashboard />
+          </div>
+          <div
+            className="tab-pane fade"
+            id="settings-tab-pane"
+            role="tabpanel"
+            aria-labelledby="settings-tab"
+            tabIndex="0"
+          >
+            {console.log("Form Groups", formGroups)}
+            {console.log("Form Parent Groups", formParentGroups)}
+            <Settings
+              content={formGroups}
+              updateFormGroup={updateFormGroup}
+              updateFormParentGroup={updateFormParentGroup}
+              handleDeleteFormGroup={handleDeleteFormGroup}
+              handleAddFormGroup={handleAddFormGroup}
+              formParentGroups={formParentGroups}
+              handleAddParentFormGroup={handleAddParentFormGroup}
+              handleDeleteParentFormGroup={handleDeleteParentFormGroup}
+              handleAddChildFormGroup={handleAddChildFormGroup}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Form;
