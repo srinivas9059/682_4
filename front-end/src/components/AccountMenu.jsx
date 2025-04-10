@@ -25,7 +25,11 @@ export default function AccountMenu({ handleLogOut }) {
       </MenuButton>
       <Menu slots={{ listbox: AnimatedListbox }}>
         <MenuItem
+<<<<<<< HEAD
           onClick={() => navigate("/updateProfile")}
+=======
+          onClick={() => navigate("/update-profile")}
+>>>>>>> srinivas-backendd
           className="account-update-profile-btn"
         >
           Update Profile

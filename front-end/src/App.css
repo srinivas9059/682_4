@@ -8,6 +8,20 @@ html body {
   display: flex;
   justify-content: center;
 }
+<<<<<<< HEAD
+=======
+/* :root {
+  --primary-color: #000;
+}
+
+body {
+  color: var(--primary-color);
+  font-family: var(--font-family, Arial), sans-serif;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+} */
+>>>>>>> srinivas-backendd
 
 li .nav-link,
 li .nav-link:hover {

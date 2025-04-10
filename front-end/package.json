@@ -36,6 +36,7 @@
     "jsondiffpatch": "^0.6.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "lodash": "^4.17.21",
     "node-nlp": "^5.0.0-alpha.5",
     "primeicons": "^7.0.0",
     "primereact": "^10.6.6",

@@ -65,6 +65,11 @@ const FormSchema = new mongoose.Schema(
     formGroups: [{ type: mongoose.Schema.Types.Mixed }],
     formParentGroups: [{ type: mongoose.Schema.Types.Mixed }],
     formIsAcceptingResponses: { type: Boolean },
+    theme: {
+      primaryColor: { type: String, default: "#ffffff" },
+      fontFamily: { type: String, default: "Arial" },
+      backgroundImage: { type: String, default: "" },
+    },
   },
   {
     timestamps: true,

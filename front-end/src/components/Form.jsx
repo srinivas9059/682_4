@@ -35,21 +35,8 @@ function Form() {
   }, [currentUser, navigate, BACKEND_URL]);
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate("/login");
-    } else {
-      fetchFormData();
-    }
-  }, [currentUser, navigate, BACKEND_URL]);
-
-  useEffect(() => {
     console.log("Form Data updated:", formData);
   }, [formData]);
-
-  /*  useEffect(() => {
-    console.log("Form Title updated:", formTitle);
-    console.log("Form Description updated:", formDescription);
-  }, [formTitle, formDescription]); */
 
   const fetchFormData = async () => {
     try {
@@ -72,60 +59,49 @@ function Form() {
       console.error("Error fetching form data: ", error);
     }
     setLoading(false);
-    //console.log("Form Data fetched:", formData);
   };
 
+  // Update a specific question
   const updateQuestion = (sectionID, questionID, updatedQuestion) => {
-    console.log("Updating question", sectionID, questionID, updatedQuestion);
-    console.log("Updating question section", sectionID);
-    console.log("Available sections", formData.formSections);
-
     setFormData((currentFormData) => {
       const newSections = currentFormData.formSections.map((section) => {
         if (section.sectionID === sectionID) {
           const newQuestions = section.questions.map((question) => {
             if (question.questionID === questionID) {
-              console.log(
-                "Question found, replacing with updated question:",
-                updatedQuestion
-              );
               return updatedQuestion;
             }
             return question;
           });
-
           return { ...section, questions: newQuestions };
         }
         return section;
       });
-
-      console.log("New Sections after update:", newSections);
       return { ...currentFormData, formSections: newSections };
     });
   };
 
+  // Add a new section
   const handleAddSection = () => {
-    // const currentMaxID = formData.formSections.reduce((max, section) => Math.max(max, section.sectionID), 1000);
-
     const newSection = {
       sectionID: Math.floor(Math.random() * 9000) + 1000,
       questions: [],
     };
     const updatedSections = [...formData.formSections, newSection];
     setFormData({ ...formData, formSections: updatedSections });
-    // updateFormSections(updatedSections);
   };
 
+  // Delete Section
   const handleDeleteSection = async (sectionID) => {
     const updatedSections = formData.formSections.filter(
       (section) => section.sectionID !== sectionID
     );
-    // await updateFormSections(updatedSections);
+    setFormData({ ...formData, formSections: updatedSections });
+    // optionally handleSave() right away
   };
 
+  // DnD: reorder questions
   const handleDragEnd = (event) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       const fromQuestionId = active.id;
       const toQuestionId = over.id;
@@ -178,16 +154,14 @@ function Form() {
     return <div>Loading form...</div>;
   }
 
+  // Title & description changes
   const storeTitleDescription = (arr) => {
-    console.log("Title and Description logged", arr);
     setFormTitle(arr[0]);
-    console.log("Form Title dwfc", formTitle);
     setFormDescription(arr[1]);
-    console.log("Form Description", formDescription);
   };
 
+  // Delete question in a section
   const handleDeleteQuestion = (sectionID, questionID) => {
-    console.log("Deleting question", sectionID, questionID);
     const newSections = formData.formSections.map((section) => {
       if (section.sectionID === sectionID) {
         const filteredQuestions = section.questions.filter(
@@ -200,6 +174,7 @@ function Form() {
     setFormData({ ...formData, formSections: newSections });
   };
 
+  // Add question in a section
   const handleAddQuestion = (sectionID) => {
     const newQuestion = {
       questionID: Math.floor(Math.random() * 9000) + 1000,
@@ -218,25 +193,25 @@ function Form() {
     setFormData({ ...formData, formSections: newSections });
   };
 
+  // Duplicate question in a section
   const handleDuplicateQuestion = (sectionID, q) => {
-    console.log("Duplicating question", q);
     const newSections = formData.formSections.map((section) => {
       if (section.sectionID === sectionID) {
         let duplicateQuestion;
-        if (q.questionType == 1)
+        if (q.questionType === 1)
           duplicateQuestion = {
             questionID: Math.floor(Math.random() * 9000) + 1000,
             questionType: 1,
             question: `[COPY] ${q.question}`,
             options: q.options,
           };
-        else if (q.questionType == 2)
+        else if (q.questionType === 2)
           duplicateQuestion = {
             questionID: Math.floor(Math.random() * 9000) + 1000,
             questionType: 2,
             question: `[COPY] ${q.question}`,
           };
-        else if (q.questionType == 3)
+        else if (q.questionType === 3)
           duplicateQuestion = {
             questionID: Math.floor(Math.random() * 9000) + 1000,
             questionType: 3,
@@ -253,32 +228,30 @@ function Form() {
     });
     setFormData({ ...formData, formSections: newSections });
   };
+
+  // Called by <Settings />: update an existing group
   const updateFormGroup = (newG) => {
-    console.log("Updating form group", newG);
     setFormGroups((oldGroups) => {
       const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
-      console.log("Index of group to be updated", index);
       const newGroups = [...oldGroups];
       newGroups[index] = newG;
       return newGroups;
     });
-    console.log("Logging form groups after update", formGroups);
     handleSave();
   };
 
+  // Called by <Settings />: update a parent group
   const updateFormParentGroup = (newG) => {
-    console.log("Updating form group", newG);
     setFormParentGroups((oldGroups) => {
       const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
-      console.log("Index of group to be updated", index);
       const newGroups = [...oldGroups];
       newGroups[index] = newG;
       return newGroups;
     });
-    console.log("Logging form groups after update", formGroups);
     handleSave();
   };
 
+  // Called by <Settings />: delete a parent group
   const handleDeleteParentFormGroup = (id) => {
     if (formParentGroups.length === 1) {
       alert("Cannot delete. Only 1 parent form group is present !");
@@ -325,56 +298,8 @@ function Form() {
     // handleSave();
   };
 
-  /* const handleAddFormGroup = async (groupID, groupName) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
-      { method: "GET" }
-    );
-    const json = await response.json();
-    const newGroup = json.formGroup;
-
-    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
-    setFormParentGroups((oldFormParentGroups) => {
-      return oldFormParentGroups.map((parentGroup) => {
-        if (parentGroup.groupID === groupID) {
-          return {
-            ...parentGroup,
-            childGroups: [...parentGroup.childGroups, newGroup.groupID],
-          };
-        }
-        return parentGroup;
-      });
-    });
-  };
-
-  const handleAddChildFormGroup = async (groupID, groupName) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
-      { method: "GET" }
-    );
-    const json = await response.json();
-    const newGroup = json.formGroup;
-
-    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
-    setFormParentGroups((oldFormParentGroups) => {
-      return oldFormParentGroups.map((parentGroup) => {
-        if (parentGroup.groupID === groupID) {
-          return {
-            ...parentGroup,
-            childGroups: [...parentGroup.childGroups, newGroup.groupID],
-          };
-        }
-        return parentGroup;
-      });
-    });
-  };
-
+  // Called by <Settings />: add parent group
   const handleAddParentFormGroup = async (parentGroupName) => {
-    console.log(parentGroupName, "to be added");
     const id = localStorage.getItem("formID");
     const response = await fetch(
       `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
@@ -382,162 +307,14 @@ function Form() {
     );
     const json = await response.json();
     const newParentGroup = json.formParentGroup;
-    console.log("New Parent Group", newParentGroup);
     setFormParentGroups((oldFormParentGroups) => [
       ...oldFormParentGroups,
       newParentGroup,
     ]);
     console.log("Form Parent Groups after adding", formParentGroups);
-  }; */
-
-  const handleAddFormGroup = async (groupID, groupName) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
-      { method: "GET" }
-    );
-    const json = await response.json();
-    const newGroup = json.formGroup;
-
-    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
-    setFormParentGroups((oldFormParentGroups) => {
-      return oldFormParentGroups.map((parentGroup) => {
-        if (parentGroup.groupID === groupID) {
-          const updatedParentGroup = {
-            ...parentGroup,
-            childGroups: [...(parentGroup.childGroups || []), newGroup.groupID],
-          };
-          return updatedParentGroup;
-        }
-        return parentGroup;
-      });
-    });
   };
 
-  const handleAddChildFormGroup = async (groupID, groupName) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
-      { method: "GET" }
-    );
-    const json = await response.json();
-    const newGroup = json.formGroup;
-
-    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
-    setFormParentGroups((oldFormParentGroups) => {
-      return oldFormParentGroups.map((parentGroup) => {
-        if (parentGroup.groupID === groupID) {
-          const updatedParentGroup = {
-            ...parentGroup,
-            childGroups: [...(parentGroup.childGroups || []), newGroup.groupID],
-          };
-          return updatedParentGroup;
-        }
-        return parentGroup;
-      });
-    });
-  };
-
-  const handleAddParentFormGroup = async (parentGroupName) => {
-    console.log(parentGroupName, "to be added");
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
-      { method: "GET" }
-    );
-    const json = await response.json();
-    const newParentGroup = json.formParentGroup;
-
-    setFormParentGroups((oldFormParentGroups) => [
-      ...oldFormParentGroups,
-      newParentGroup,
-    ]);
-  };
-
-  /* const updateFormGroup = (newG) => {
-    setFormGroups((oldGroups) => {
-      const index = oldGroups.findIndex((g) => g.groupID === newG.groupID);
-      const newGroups = [...oldGroups];
-      newGroups[index] = newG;
-      return newGroups;
-    });
-  };
-
-  const handleDeleteParentFormGroup = (id) => {
-    if (formParentGroups.length === 1)
-      alert("Cannot delete. Only 1 form group is present !");
-    else {
-      setFormParentGroups((oldGroups) => {
-        const newGroups = oldGroups.filter((g) => g.groupID !== id);
-        return newGroups;
-      });
-      notifications.show({
-        color: "#edbb5f",
-        message: "Group Deleted",
-        autoClose: 2500,
-      });
-    }
-  };
-
-  const handleDeleteFormGroup = (id, groupID) => {
-    if (formGroups.length === 1)
-      alert("Cannot delete. Only 1 form group is present !");
-    else {
-      setFormParentGroups((oldFormParentGroups) => {
-        const indexTemp = oldFormParentGroups.findIndex(
-          (parentGroup) => parentGroup.groupID === groupID
-        );
-        const newFormParentGroups = oldFormParentGroups;
-        newFormParentGroups[indexTemp].childGroups = oldFormParentGroups[
-          indexTemp
-        ].childGroups.filter((groupID) => groupID !== id);
-        return newFormParentGroups;
-      });
-
-      setFormGroups((oldGroups) => {
-        return oldGroups.filter((g) => g.groupID !== id);
-      });
-
-      notifications.show({
-        color: "#edbb5f",
-        message: "Group Deleted",
-        autoClose: 2500,
-      });
-    }
-  };
-
-  const handleAddFormGroup = async (groupName, groupID) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`,
-      {
-        method: "GET",
-      }
-    );
-    const json = await response.json();
-    const newGroup = json.formGroup;
-    setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-    setFormParentGroups(json.formParentGroups);
-  };
-
-  const handleAddParentFormGroup = async (parentGroupName) => {
-    const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
-      {
-        method: "GET",
-      }
-    );
-    const json = await response.json();
-    const newParentGroup = json.formParentGroup;
-    setFormParentGroups((oldFormParentGroups) => [
-      ...oldFormParentGroups,
-      newParentGroup,
-    ]);
-  }; */
-
+  // Called by the user or from other places to save entire form
   const handleSave = async () => {
     const id = localStorage.getItem("formID");
     console.log("Form Data to be saved", formData);
@@ -738,7 +515,7 @@ function Form() {
               formParentGroups={formParentGroups}
               handleAddParentFormGroup={handleAddParentFormGroup}
               handleDeleteParentFormGroup={handleDeleteParentFormGroup}
-              handleAddChildFormGroup={handleAddChildFormGroup}
+              handleAddChildFormGroup={handleAddFormGroup}
             />
           </div>
         </div>

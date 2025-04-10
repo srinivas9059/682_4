@@ -101,6 +101,10 @@ function Settings({
           </div>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> srinivas-backendd
       <GroupCard
         formParentGroup={formParentGroups}
         handleAddParentFormGroup={handleAddParentFormGroup}
@@ -111,7 +115,12 @@ function Settings({
         updateFormGroup={updateFormGroup}
         handleAddChildFormGroup={handleAddChildFormGroup}
         updateFormParentGroup={updateFormParentGroup}
+<<<<<<< HEAD
       ></GroupCard>
+=======
+      />
+
+>>>>>>> srinivas-backendd
       <div className="settings-delete-form-part">
         <div className="settings-page-delete-form-inner">
           <Button

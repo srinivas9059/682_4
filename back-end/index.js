@@ -21,15 +21,19 @@ app.get("/ping", async (req, res) => {
   res.json({ msg: "Active" });
 });
 
+// 🔥 createNewForm now reads formTitle from req.query or defaults to "Untitled Form"
 app.get("/createNewForm", async (req, res) => {
   const { userID } = req.query;
+  // Generate a random formID
   const formID = randomstring.generate(7);
-  const formTitle = "";
+  // If the front end provided ?formTitle=someValue, use it. Else "Untitled Form".
+  let formTitle = req.query.formTitle || "Untitled Form";
   const formDescription = "";
   const formSections = []; // Initialize sections
   const formResponses = [];
   const defaultGroupID = randomstring.generate(7);
-
+  console.log("Incoming formTitle param:", req.query.formTitle);
+  console.log("Resolved final formTitle:", formTitle);
   const defaultParentGroupID = randomstring.generate(7);
   const formParentGroups = [
     {
@@ -49,13 +53,19 @@ app.get("/createNewForm", async (req, res) => {
     },
   ];
   const formIsAcceptingResponses = true;
+
   try {
     const form = await Form.create({
+      theme: {
+        primaryColor: "#ffffff",
+        fontFamily: "Arial",
+        backgroundImage: "",
+      },
       userID: userID,
       formID: formID,
       formTitle: formTitle,
       formDescription: formDescription,
-      formSections: formSections, // Save initialized sections
+      formSections: formSections,
       formResponses: formResponses,
       formGroups: formGroups,
       formParentGroups: formParentGroups,
@@ -66,6 +76,43 @@ app.get("/createNewForm", async (req, res) => {
     res
       .status(500)
       .json({ msg: "Form creation failed !", errorMsg: error.message });
+  }
+});
+
+app.put("/updateFormGroupTheme/:formID/:groupID", async (req, res) => {
+  const { formID, groupID } = req.params;
+  const { theme } = req.body;
+
+  try {
+    const form = await Form.findOne({ formID });
+    if (!form) return res.status(404).json({ error: "Form not found" });
+
+    let updated = false;
+
+    form.formGroups = form.formGroups.map((group) => {
+      if (group.groupID === groupID) {
+        updated = true;
+        return { ...group, theme: { ...group.theme, ...theme } };
+      }
+      return group;
+    });
+
+    form.formParentGroups = form.formParentGroups.map((parent) => {
+      if (parent.groupID === groupID) {
+        updated = true;
+        return { ...parent, theme: { ...parent.theme, ...theme } };
+      }
+      return parent;
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Group not found in the form" });
+    }
+
+    await form.save();
+    res.status(200).json({ msg: "Theme updated", form });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -120,18 +167,6 @@ app.delete("/deleteForm/:id", async (req, res) => {
       .json({ msg: "See error message !", errorMsg: error.message });
   }
 });
-
-/* app.get("/getFormData/:id", async (req, res) => {
-  try {
-    const form = await Form.findOne({ formID: req.params.id });
-    if (form) res.status(200).json({ form: form });
-    else res.status(404).json({ msg: "Form not found." });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ msg: "See error message !", errorMsg: error.message });
-  }
-}); */
 
 app.get("/getFormData/:id", async (req, res) => {
   try {
@@ -188,7 +223,6 @@ app.put("/updateForm", async (req, res) => {
     await form.save();
 
     console.log("After Update:", JSON.stringify(form.formSections, null, 2));
-
     console.log("UPDATE FORM ENDED");
 
     res.status(200).json({
@@ -531,11 +565,8 @@ app.get("/getSummaryDashboardData/:id", async (req, res) => {
       });
     });
 
-    // console.log("groupResponses", groupResponses);
-
     form.formSections.forEach((section) => {
       section.questions.forEach((q) => {
-        // Initialize sections and questions for each group
         form.formGroups.forEach((group) => {
           console.log(
             "groupResponses[group.groupID].sections",
@@ -640,29 +671,6 @@ app.get("/duplicateForm/:id", async (req, res) => {
       .json({ msg: "See error message !", errorMsg: error.message });
   }
 });
-
-app.get("/getAllFormResponses/:id", async (req, res) => {
-  try {
-    // 1. Fetch the Form document by formID
-    const form = await Form.findOne({ formID: req.params.id });
-    if (!form) {
-      return res.status(404).json({ msg: "Form not found" });
-    }
-
-    return res.status(200).json({
-      formTitle: form.formTitle,
-      formID: form.formID,
-      formSections: form.formSections,
-      formResponses: form.formResponses,
-    });
-  } catch (error) {
-    console.error("Error fetching all form responses:", error);
-    return res
-      .status(500)
-      .json({ msg: "Failed to fetch form responses", error: error.message });
-  }
-});
-
 
 mongoose
   .connect(process.env.MONGO_DB_URL)
