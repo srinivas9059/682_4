@@ -17,8 +17,10 @@ function Form() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formGroups, setFormGroups] = useState([]);
+  const [forceRefresh, setForceRefresh] = useState(0);
   const [formParentGroups, setFormParentGroups] = useState([]);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const [formData, setFormData] = useState({ formSections: [] });
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,10 @@ if (!formID) {
         setFormDescription(data.form.formDescription);
         setFormGroups(data.form.formGroups);
         setFormParentGroups(data.form.formParentGroups);
+
+        
+        
+
         console.log("Form Data fetched:", data.form);
       } else {
         console.error("Failed to load form data.");
@@ -79,6 +85,14 @@ if (!formID) {
     }
     setLoading(false);
   };  
+
+  const refreshDashboardData = () => {
+    const formID = localStorage.getItem("formID");
+    fetchFormData(formID);
+    setForceRefresh((prev) => prev + 1); // this triggers dashboard to react
+  };
+  
+  
 
   const updateQuestion = (sectionID, questionID, updatedQuestion) => {
     console.log("Updating question", sectionID, questionID, updatedQuestion);
@@ -727,7 +741,8 @@ if (!formID) {
             aria-labelledby="dasboard-tab"
             tabIndex="0"
           >
-            <Dashboard />
+            <Dashboard forceRefresh={refreshCounter} />
+
           </div>
           <div
             className="tab-pane fade"
@@ -739,6 +754,8 @@ if (!formID) {
             {console.log("Form Groups", formGroups)}
             {console.log("Form Parent Groups", formParentGroups)}
             <Settings
+              key={JSON.stringify(formGroups.map((g) => g.expiresAt)).length}
+
               content={formGroups}
               updateFormGroup={updateFormGroup}
               updateFormParentGroup={updateFormParentGroup}
@@ -748,6 +765,7 @@ if (!formID) {
               handleAddParentFormGroup={handleAddParentFormGroup}
               handleDeleteParentFormGroup={handleDeleteParentFormGroup}
               handleAddChildFormGroup={handleAddChildFormGroup}
+              refreshDashboardData={refreshDashboardData} 
             />
           </div>
         </div>

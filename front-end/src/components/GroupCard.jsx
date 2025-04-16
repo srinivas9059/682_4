@@ -7,6 +7,7 @@ import ParentGroup from "./ParentGroup";
 import ChildGroup from "./ChildGroup";
 import LeafGroup from "./LeafGroup";
 
+
 function GroupCard({
   formParentGroup,
   content,
@@ -155,10 +156,12 @@ function GroupCard({
 
   const handleAddFormGroups = async (groupID, groupName, duration) => {
     const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`,
-      { method: "GET" }
-    );
+    const url = duration
+  ? `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`
+  : `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`;
+
+const response = await fetch(url, { method: "GET" });
+
     const json = await response.json();
     const newGroup = json.formGroup;
 
@@ -213,10 +216,13 @@ function GroupCard({
 
   const handleAddChildFormGroups = async (groupID, groupName, duration) => {
     const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`,
-      { method: "GET" } 
-    );
+
+    const url = duration
+  ? `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`
+  : `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`;
+
+  const response = await fetch(url, { method: "GET" });
+
     const json = await response.json();
     const newGroup = json.formGroup;
 

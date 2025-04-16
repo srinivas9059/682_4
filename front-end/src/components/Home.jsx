@@ -16,23 +16,28 @@ function Home() {
   const { currentUser, logout } = useAuth();
 
   useEffect(() => {
-    if (!currentUser) navigate("/login");
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+  
     localStorage.removeItem("formID");
+  
     const fetchData = async () => {
-      const response = await fetch(
-        `${BACKEND_URL}/getAllFormTitlesIDs?userID=${
-          currentUser && currentUser.uid
-        }`,
-        {
-          method: "GET",
-        }
-      );
-      const json = await response.json();
-      setAllFormTitlesIDs(json.allFormTitlesIDs);
-      setIsLoading(false);
+      try {
+        const response = await fetch(`${BACKEND_URL}/getAllFormTitles`);
+        const json = await response.json();
+        setAllFormTitlesIDs(json); // No `.allFormTitlesIDs` anymore
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching form titles:", error);
+        setIsLoading(false);
+      }
     };
+  
     fetchData();
   }, []);
+  
 
   const handleCreateNewForm = async () => {
     const response = await fetch(

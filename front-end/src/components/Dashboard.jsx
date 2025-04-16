@@ -10,7 +10,8 @@ import MCQDashboardListItem from "./MCQDashboardListItem";
 import SAQDashboardListItem from "./SAQDashboardListItem";
 import LSQDashboardListItem from "./LSQDashboardListItem";
 
-function Dashboard() {
+function Dashboard({ forceRefresh }) {
+
   const [groupsData, setGroupsData] = useState([]);
   const [selectedNodes1, setSelectedNodes1] = useState({});
   const [selectedNodes2, setSelectedNodes2] = useState({});
@@ -23,57 +24,94 @@ function Dashboard() {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
+
     const fetchData = async () => {
+      const groupID = localStorage.getItem("groupID");
+      const formID = localStorage.getItem("formID");
+      
+      
+  
       try {
-        const response = await fetch(
-          `${BACKEND_URL}/getSummaryDashboardData/${localStorage.getItem(
-            "formID"
-          )}?groupID=${localStorage.getItem("groupID")}`
-        );
+        const formRes = await fetch(`${BACKEND_URL}/getFormData/${formID}`);
+        if (!formRes.ok) {
+          console.warn("Form fetch failed. Skipping dashboard fetch.");
+          return;
+        }
+  
+        const formData = await formRes.json();
+        const group = formData.form.formGroups.find((g) => g.groupID === groupID);
         
+        console.log("✅ Group check:", group);
+        if (group.expiresAt && new Date() > new Date(group.expiresAt)) {
+          console.warn(`⚠️ Group "${group.groupName}" is STILL expired after retry. Skipping.`);
+          return;
+        }
+        
+  
+        const now = new Date();
+        const groupExpiry = group?.expiresAt ? new Date(group.expiresAt) : null;
+  
+        if (!groupExpiry || groupExpiry < now) {
+          console.warn(`⚠️ Group "${group.groupName}" is STILL expired. Checking again...`);
+  
+          const retryRes = await fetch(`${BACKEND_URL}/getFormData/${formID}`);
+          const retryData = await retryRes.json();
+          const refreshedGroup = retryData.form.formGroups.find((g) => g.groupID === groupID);
+  
+          if (!refreshedGroup || new Date(refreshedGroup.expiresAt) < new Date()) {
+            console.warn(`🚫 Group "${group.groupName}" is STILL expired after retry. Skipping.`);
+            return;
+          } else {
+            console.log(`✅ Group "${refreshedGroup.groupName}" was extended. Proceeding.`);
+          }
+        }
+  
+        const response = await fetch(`${BACKEND_URL}/getSummaryDashboardData/${formID}?groupID=${groupID}`);
         const data = await response.json();
+        if (data.expiredGroupID) {
+          console.warn(`⏳ Group "${data.expiredGroupID}" is expired — awaiting extension`);
+          setGroupsData([]); // clear data
+          setNumberOfResponses(data.numberOfResponses);
+          setOriginalFormSections(data.form.formSections);
+          setOldFormGroups(data.formGroups);
+          setOldFormParentGroups(data.formParentGroups);
+          return; // stop here until group is extended
+        }
+        
+        if (data.expiredGroupID) {
+          console.warn(`⚠️ Group "${data.expiredGroupID}" is expired (detected in response). Still showing for extension.`);
+          // You can optionally set a state like: setIsGroupExpired(true); if needed
+        }
+        
+  
         if (response.ok) {
           setGroupsData(data.groupResponses);
           setNumberOfResponses(data.numberOfResponses);
           setOriginalFormSections(data.formSections);
-          console.log(
-            "Is equal",
-            JSON.stringify(oldFormGroups) === JSON.stringify(data.formGroups)
-          );
-          console.log(
-            "oldFormGroups",
-            oldFormGroups,
-            "data.formGroups",
-            data.formGroups
-          );
-          console.log(
-            "Is equal",
-            oldFormParentGroups === data.formParentGroups
-          );
+  
           if (
-            JSON.stringify(oldFormGroups) === JSON.stringify(data.formGroups) &&
-            JSON.stringify(oldFormParentGroups) ===
-              JSON.stringify(data.formParentGroups)
+            JSON.stringify(oldFormGroups) !== JSON.stringify(data.formGroups) ||
+            JSON.stringify(oldFormParentGroups) !== JSON.stringify(data.formParentGroups)
           ) {
-            console.log("No change in groups");
-          } else {
             prepareOptions(data.formParentGroups, data.groupResponses);
             setOldFormGroups(data.formGroups);
             setOldFormParentGroups(data.formParentGroups);
           }
-          console.log("Logging data", data.formGroups);
         } else {
-          throw new Error("Failed to fetch data");
+          throw new Error("Failed to fetch summary dashboard data");
         }
+  
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("❌ Error fetching dashboard data:", error);
       }
     };
-
+  
+    fetchData();
     const intervalId = setInterval(fetchData, 2000);
     return () => clearInterval(intervalId);
-  }, []);
-
+  
+  }, [forceRefresh]);
+  
   /*   const prepareOptions = (parentGroups, childGroups) => {
     const formattedOptions = parentGroups.map((parent) => ({
       key: parent.groupID,
@@ -309,6 +347,11 @@ function Dashboard() {
     setShowSecondFilter(true);
   };
 
+  const refreshDashboardData = () => {
+    setForceRefresh((prev) => prev + 1);
+  };
+  
+
   // Helper function to render response sections based on selected nodes
   const renderResponseSections = (selectedNodes, identifier) =>
     originalFormSections.map((sectionInfo) => {
@@ -434,6 +477,8 @@ function Dashboard() {
         return null;
     }
   };
+  
+  
 
   return (
     <div className="form-dashboard-tab">

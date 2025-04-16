@@ -21,16 +21,56 @@
     res.json({ msg: "Active" });
   });
 
+  app.put("/extendGroupExpiry/:formID/:groupID", async (req, res) => {
+    const { formID, groupID } = req.params;
+    const { extendByMinutes } = req.body;
+
+    console.log("🛠️ BACKEND: Received extend request for:");
+    console.log("Form ID:", formID);
+    console.log("Group ID:", groupID);
+    console.log("Extend by (mins):", extendByMinutes);    
+  
+    try {
+      const form = await Form.findOne({ formID });
+
+if (!form) {
+  return res.status(404).json({ msg: "Form not found." });
+}
+
+const group = form.formGroups.find(g => g.groupID === groupID);
+if (!group) {
+  return res.status(404).json({ msg: "Group not found." });
+}
+
+// ✅ Extend even if it's expired
+group.expiresAt = new Date(Date.now() + parseInt(extendByMinutes) * 60000);
+
+await form.save();
+
+    console.log("✅ New Expiry:", group.expiresAt);
+  
+      return res.status(200).json({
+        msg: `Group expiry extended by ${extendByMinutes} minutes.`,
+        newExpiresAt: group.expiresAt,
+      });
+    } catch (error) {
+      return res.status(500).json({ msg: "Extension failed.", errorMsg: error.message });
+    }
+  });
+
   app.get("/createNewForm", async (req, res) => {
     const { userID } = req.query;
     const formID = randomstring.generate(7);
     const formTitle = "";
     const formDescription = "";
-    const formSections = []; // Initialize sections
+    const formSections = [];
     const formResponses = [];
     const defaultGroupID = randomstring.generate(7);
-
     const defaultParentGroupID = randomstring.generate(7);
+  
+    const duration = parseInt(req.query.durationInMinutes || "60");
+    const expiresAt = new Date(Date.now() + duration * 60 * 1000);
+  
     const formParentGroups = [
       {
         groupID: defaultParentGroupID,
@@ -39,19 +79,16 @@
         childGroups: [defaultGroupID],
       },
     ];
-    
-    const duration = parseInt(req.query.durationInMinutes || "60");
-    const expiresAt = new Date(Date.now() + duration * 60 * 1000);
-    
+  
     const formGroups = [
       {
-        groupID: "open-access", // fixed ID
+        groupID: "open-access",
         groupCode: "0",
         parentGroupID: null,
         groupName: "Open Access Group",
         groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/open-access`,
-        expiresAt: null, // no expiry
-        isPermanent: true, // optional flag
+        expiresAt: null,
+        isPermanent: true,
       },
       {
         groupID: defaultGroupID,
@@ -62,67 +99,28 @@
         expiresAt: expiresAt,
       },
     ];
-    
-    
+  
     const formIsAcceptingResponses = true;
+  
     try {
       const form = await Form.create({
         userID: userID,
         formID: formID,
         formTitle: formTitle,
         formDescription: formDescription,
-        formSections: formSections, // Save initialized sections
+        formSections: formSections,
         formResponses: formResponses,
         formGroups: formGroups,
         formParentGroups: formParentGroups,
         formIsAcceptingResponses: formIsAcceptingResponses,
       });
+  
       res.status(200).json({ msg: "Form created.", form: form });
     } catch (error) {
-      res
-        .status(500)
-        .json({ msg: "Form creation failed !", errorMsg: error.message });
+      res.status(500).json({ msg: "Form creation failed !", errorMsg: error.message });
     }
   });
-
-  app.put("/updateSection", async (req, res) => {
-    const { formID, sectionID, questions } = req.body;
-    try {
-      const updatedForm = await Form.findOneAndUpdate(
-        { formID: formID, "formSections.sectionID": sectionID },
-        {
-          $set: {
-            "formSections.$.questions": questions,
-          },
-        },
-        { new: true }
-      );
-      if (updatedForm) {
-        res.status(200).json({ msg: "Section updated.", form: updatedForm });
-      } else {
-        res.status(404).json({ msg: "Form not found." });
-      }
-    } catch (error) {
-      res
-        .status(500)
-        .json({ msg: "Updating section failed !", errorMsg: error.message });
-    }
-  });
-
-  app.get("/getAllFormTitlesIDs", async (req, res) => {
-    try {
-      const { userID } = req.query;
-      const allFormTitlesIDs = await Form.find(
-        { userID: userID },
-        { formID: true, formTitle: true, _id: false }
-      );
-      res.status(200).json({ allFormTitlesIDs: allFormTitlesIDs });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ msg: "See error message !", errorMsg: error.message });
-    }
-  });
+  
 
   app.delete("/deleteForm/:id", async (req, res) => {
     try {
@@ -317,8 +315,12 @@
         );
       }
 
-      const duration = parseInt(req.query.durationInMinutes || "60");
-      const expiresAt = new Date(Date.now() + duration * 60 * 1000);
+      let expiresAt = null;
+      const durationStr = req.query.durationInMinutes;
+      if (durationStr && durationStr !== "none") {
+      const duration = parseInt(durationStr);
+      expiresAt = new Date(Date.now() + duration * 60 * 1000);
+      }
         
         
         const formGroup = {
@@ -404,8 +406,13 @@
         );
       }
 
-      const duration = parseInt(req.query.durationInMinutes || "60");
-      const expiresAt = new Date(Date.now() + duration * 60 * 1000);
+      let expiresAt = null;
+      const durationStr = req.query.durationInMinutes;
+      if (durationStr && durationStr !== "none") {
+      const duration = parseInt(durationStr);
+      expiresAt = new Date(Date.now() + duration * 60 * 1000);
+     }
+
 
       const formGroup = {
       groupID: defaultGroupID,
@@ -470,27 +477,44 @@
 
   app.get("/getSummaryDashboardData/:id", async (req, res) => {
     try {
-      const form = await Form.findOne({ formID: req.params.id });
-      if (!form) {
+      const refreshedForm = await Form.findOne({ formID: req.params.id });
+  
+      if (!refreshedForm) {
         return res.status(404).json({ msg: "Form not found." });
       }
-      const groupID = req.query.groupID; // assuming you're passing groupID in query params
-  const group = form.formGroups.find(g => g.groupID === groupID);
+  
+      const groupID = req.query.groupID;
+      let refreshedGroup = refreshedForm.formGroups.find(g => g.groupID === groupID);
 
-  if (!group) {
+// Try re-fetching if not found
+if (!refreshedGroup) {
+  const retryForm = await Form.findOne({ formID: req.params.id });
+  refreshedGroup = retryForm.formGroups.find(g => g.groupID === groupID);
+  if (!refreshedGroup) {
     return res.status(404).json({ msg: "Group not found." });
   }
+  refreshedForm = retryForm;
+}
 
-  if (group.expiresAt && new Date() > new Date(group.expiresAt)) {
-    return res.status(410).json({ msg: "Link expired." });
-  }
   
-
-
+      if (refreshedGroup.expiresAt && new Date() > new Date(refreshedGroup.expiresAt)) {
+        const retryForm = await Form.findOne({ formID: req.params.id });
+        const retryGroup = retryForm.formGroups.find(g => g.groupID === groupID);
+      
+        if (retryGroup && (!retryGroup.expiresAt || new Date() <= new Date(retryGroup.expiresAt))) {
+          // ✅ Proceed with refreshed
+          refreshedForm = retryForm;
+          refreshedGroup = retryGroup;
+        } else {
+          return res.status(200).json({ expiredGroupID: groupID });
+        }
+      }
+      
+      
+  
       const groupResponses = {};
-
-      // Initialize groupResponses with group IDs
-      form.formGroups.forEach((group) => {
+  
+      refreshedForm.formGroups.forEach((group) => {
         if (group.groupCode === "3") {
           groupResponses[group.groupID] = {
             groupID: group.groupID,
@@ -506,12 +530,10 @@
           };
         }
       });
-
-      // Process each section and question
-      form.formSections.forEach((section) => {
+  
+      refreshedForm.formSections.forEach((section) => {
         section.questions.forEach((q) => {
-          // Initialize sections and questions for each group
-          form.formGroups.forEach((group) => {
+          refreshedForm.formGroups.forEach((group) => {
             const groupSection = groupResponses[group.groupID].sections;
             if (!groupSection[section.sectionID]) {
               groupSection[section.sectionID] = {
@@ -519,16 +541,16 @@
                 questions: [],
               };
             }
-
+  
             let subData = {};
             if (q.questionType === 1) {
               q.options.forEach((option) => {
-                subData[option.optionValue] = 0; // Initialize option counts for MCQ
+                subData[option.optionValue] = 0;
               });
             } else if (q.questionType === 3) {
-              subData = new Array(q.upperLimit).fill(0); // Initialize scale counts
+              subData = new Array(q.upperLimit).fill(0);
             }
-
+  
             const questionObj = {
               questionID: q.questionID,
               question: q.question,
@@ -536,30 +558,19 @@
               responses: [],
               subData: subData,
             };
-
-            if (q.questionType === 1) {
-              questionObj.options = q.options;
-            }
-
+  
+            if (q.questionType === 1) questionObj.options = q.options;
             if (q.questionType === 3) {
               questionObj.upperLimit = q.upperLimit;
               questionObj.labels = q.labels;
             }
-
-            console.log("Question Type", q.questionType);
-            console.log("Question Obj", questionObj);
-            console.log("-----------------done-----------------");
-
-            // Gather responses per group and update subData accordingly
-            form.formResponses.forEach((r) => {
+  
+            refreshedForm.formResponses.forEach((r) => {
               if (r.userGroupID === group.groupID) {
                 r.userResponse.forEach((uRes) => {
                   if (uRes.questionID === q.questionID) {
                     questionObj.responses.push(uRes.answer);
-                    if (
-                      q.questionType === 1 &&
-                      subData.hasOwnProperty(uRes.answer)
-                    ) {
+                    if (q.questionType === 1 && subData.hasOwnProperty(uRes.answer)) {
                       subData[uRes.answer]++;
                     } else if (q.questionType === 3) {
                       const index = parseInt(uRes.answer) - 1;
@@ -571,45 +582,30 @@
                 });
               }
             });
-
+  
             groupSection[section.sectionID].questions.push(questionObj);
           });
         });
       });
-
-      // console.log("groupResponses", groupResponses);
-
-      form.formSections.forEach((section) => {
-        section.questions.forEach((q) => {
-          // Initialize sections and questions for each group
-          form.formGroups.forEach((group) => {
-            console.log(
-              "groupResponses[group.groupID].sections",
-              groupResponses[group.groupID].sections
-            );
-            console.log(
-              "groupResponses[group.groupID].questions",
-              groupResponses[group.groupID].sections[section.sectionID].questions
-            );
-          });
-        });
-      });
-
+  
       res.status(200).json({
+        form: {
+          formTitle: refreshedForm.formTitle,
+          formDescription: refreshedForm.formDescription,
+          formIsAcceptingResponses: refreshedForm.formIsAcceptingResponses,
+          formSections: refreshedForm.formSections,
+        },
         groupResponses: Object.values(groupResponses),
-        numberOfResponses: form.formResponses.length,
-        formGroups: form.formGroups,
-        formParentGroups: form.formParentGroups,
-        formSections: form.formSections,
+        numberOfResponses: refreshedForm.formResponses.length,
+        formGroups: refreshedForm.formGroups,
+        formParentGroups: refreshedForm.formParentGroups,
         msg: "Summary Data and number of responses sent.",
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({ msg: "Error retrieving form data", errorMsg: error.message });
+      res.status(500).json({ msg: "Error retrieving form data", errorMsg: error.message });
     }
   });
-
+  
   app.post("/setIsAcceptingResponses", async (req, res) => {
     try {
       const updatedForm = {
@@ -648,7 +644,12 @@
 
   app.get("/duplicateForm/:id", async (req, res) => {
     try {
-      const form = await Form.findOne({ formID: req.params.id });
+      const refreshedForm = await Form.findOne({ formID: req.params.id });
+if (!refreshedForm) {
+  return res.status(404).json({ msg: "Form not found." });
+}
+
+
 
       const newFormID = randomstring.generate(7);
       const defaultGroupID = randomstring.generate(7);
@@ -726,7 +727,15 @@
       });
     }
   });
-    
+  app.get("/getAllFormTitles", async (req, res) => {
+    try {
+      const forms = await Form.find({}, { formTitle: 1, formID: 1, _id: 0 });
+      res.status(200).json(forms);
+    } catch (error) {
+      res.status(500).json({ msg: "Failed to fetch form titles", errorMsg: error.message });
+    }
+  });
+  
 
   mongoose
     .connect(process.env.MONGO_DB_URL)

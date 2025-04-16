@@ -36,11 +36,13 @@ const GroupNameModal = ({
           Enter a group name
         </Typography>
         <TextField
-          fullWidth
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          label="Group Name"
+         fullWidth
+         value={groupName}
+         onChange={(e) => setGroupName(e.target.value)}
+         label="Group Name"
+        autoFocus
         />
+
         <FormControl fullWidth sx={{ mt: 3 }}>
   <InputLabel id="duration-label">Expires In</InputLabel>
   <Select
@@ -49,6 +51,7 @@ const GroupNameModal = ({
     label="Expires In"
     onChange={(e) => setDuration(e.target.value)}
   >
+    <MenuItem value={null}>Never Expires</MenuItem>
     <MenuItem value={5}>5 Minutes</MenuItem>
     <MenuItem value={30}>30 Minutes</MenuItem>
     <MenuItem value={60}>1 Hour</MenuItem>
@@ -61,7 +64,7 @@ const GroupNameModal = ({
           variant="contained"
           color="primary"
           sx={{ mt: 4 }}
-          disabled={!groupName}
+          disabled={!groupName.trim()}
           onClick={handleSave}
         >
           Save Group
