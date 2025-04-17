@@ -14,7 +14,7 @@ function Home() {
   const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const auth = useAuth();
-  
+
   // If auth is not yet initialized, show loading
   if (!auth) {
     return (
@@ -24,13 +24,13 @@ function Home() {
       </div>
     );
   }
-  
+
   const { currentUser, loading, logout } = auth;
 
   // Fetch forms data
   const fetchFormsData = async () => {
     if (!currentUser?.uid) return;
-    
+
     try {
       const response = await fetch(
         `${BACKEND_URL}/getAllFormTitlesIDs?userID=${currentUser.uid}`
@@ -53,7 +53,6 @@ function Home() {
       return;
     }
 
-    localStorage.removeItem("formID");
     fetchFormsData();
   }, [currentUser, loading, navigate]);
 
@@ -61,7 +60,7 @@ function Home() {
   const handleHomeNavigation = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
-    
+
     setIsLoading(true);
     await fetchFormsData();
   };
@@ -135,10 +134,10 @@ function Home() {
       <div className="home-page">
         <nav className="navbar nav-custom-home-page">
           <div className="container-fluid">
-            <button 
+            <button
               className="navbar-brand d-flex app-logo border-0 bg-transparent"
               onClick={handleHomeNavigation}
-              style={{ cursor: 'pointer', color: '#edbb5f' }}
+              style={{ cursor: "pointer", color: "#edbb5f" }}
             >
               <TextSnippetRoundedIcon className="m-1" />
               <span className="fs-4 ms-1">Forms</span>

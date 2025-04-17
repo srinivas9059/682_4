@@ -20,6 +20,8 @@ function Form() {
   const [formGroups, setFormGroups] = useState([]);
   const [formParentGroups, setFormParentGroups] = useState([]);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const generateUniqueQuestionID = () =>
+    Date.now() + Math.floor(Math.random() * 1000);
 
   const [formData, setFormData] = useState({ formSections: [] });
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,8 @@ function Form() {
   // Add a new section
   const handleAddSection = () => {
     const newSection = {
-      sectionID: Math.floor(Math.random() * 9000) + 1000,
+      sectionID: generateUniqueQuestionID(),
+
       questions: [],
     };
     const updatedSections = [...formData.formSections, newSection];
@@ -177,7 +180,8 @@ function Form() {
   // Add question in a section
   const handleAddQuestion = (sectionID) => {
     const newQuestion = {
-      questionID: Math.floor(Math.random() * 9000) + 1000,
+      questionID: generateUniqueQuestionID(),
+
       questionType: 1,
       question: "",
       options: [],
@@ -200,7 +204,8 @@ function Form() {
         let duplicateQuestion;
         if (q.questionType === 1)
           duplicateQuestion = {
-            questionID: Math.floor(Math.random() * 9000) + 1000,
+            questionID: generateUniqueQuestionID(),
+
             questionType: 1,
             question: `[COPY] ${q.question}`,
             options: q.options,
@@ -318,36 +323,36 @@ function Form() {
   const handleSave = async () => {
     try {
       const id = localStorage.getItem("formID");
-      
+
       // Create a minimal payload
       const updatePayload = {
         formID: id,
         formTitle: formTitle,
         formDescription: formDescription,
         formSections: formData.formSections,
-        formGroups: formGroups.map(group => ({
+        formGroups: formGroups.map((group) => ({
           groupID: group.groupID,
           groupName: group.groupName,
           parentGroupID: group.parentGroupID,
           childGroups: group.childGroups,
-          theme: group.theme
+          theme: group.theme,
         })),
-        formParentGroups: formParentGroups.map(group => ({
+        formParentGroups: formParentGroups.map((group) => ({
           groupID: group.groupID,
           groupName: group.groupName,
           childGroups: group.childGroups,
-          theme: group.theme
-        }))
+          theme: group.theme,
+        })),
       };
 
       const response = await fetch(`${BACKEND_URL}/updateForm`, {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           // Add CORS headers
-          "Accept": "application/json"
+          Accept: "application/json",
         },
-        body: JSON.stringify(updatePayload)
+        body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
@@ -363,7 +368,7 @@ function Form() {
         autoClose: 2500,
       });
     } catch (error) {
-      console.error('Error saving form:', error);
+      console.error("Error saving form:", error);
       notifications.clean();
       notifications.show({
         color: "red",

@@ -190,23 +190,25 @@ app.get("/createNewForm", async (req, res) => {
   console.log("Incoming formTitle param:", req.query.formTitle);
   console.log("Resolved final formTitle:", formTitle);
   const defaultParentGroupID = randomstring.generate(7);
+  const formGroups = [
+    {
+      groupID: defaultGroupID,
+      groupCode: "3", // ✅ must add
+      parentGroupID: defaultParentGroupID,
+      groupName: "Group 1",
+      groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${defaultGroupID}`,
+    },
+  ];
+
   const formParentGroups = [
     {
       groupID: defaultParentGroupID,
-      groupCode: "1",
+      groupCode: "1", // ✅ must add
       groupName: "Parent Group 1",
       childGroups: [defaultGroupID],
     },
   ];
-  const formGroups = [
-    {
-      groupID: defaultGroupID,
-      groupCode: "3",
-      parentGroupID: defaultParentGroupID,
-      groupName: "Group 1",
-      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
-    },
-  ];
+
   const formIsAcceptingResponses = true;
 
   try {
@@ -494,6 +496,7 @@ app.get("/createNewChildFormGroup/:id", async (req, res) => {
       groupCode: "2",
       parentGroupID: groupID,
       groupName: groupName,
+      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
       childGroups: [],
     };
     formGroups.push(formGroup);
@@ -796,7 +799,7 @@ app.get("/duplicateForm/:id", async (req, res) => {
       {
         groupID: defaultGroupID,
         groupName: "Group 1",
-        groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
+        groupLink: `${CLIENT_BASE_URL}/#/userform/${newFormID}/${defaultGroupID}`,
       },
     ];
     const defaultParentGroupID = randomstring.generate(7);

@@ -55,10 +55,23 @@ function GroupCard({
   useEffect(() => {
     setFormParentGroups(formParentGroup);
     setFormGroups(content);
+
     if (selectedGroup) {
-      const updated = content.find((g) => g.groupID === selectedGroup.groupID);
-      if (updated) {
-        setSelectedGroup(updated);
+      // Try to find in child groups first
+      const updatedChild = content.find(
+        (g) => g.groupID === selectedGroup.groupID
+      );
+      if (updatedChild) {
+        setSelectedGroup(updatedChild);
+        return;
+      }
+
+      // Then check in parent groups
+      const updatedParent = formParentGroup.find(
+        (pg) => pg.groupID === selectedGroup.groupID
+      );
+      if (updatedParent) {
+        setSelectedGroup(updatedParent);
       }
     }
   }, [formParentGroup, content]);
@@ -407,8 +420,17 @@ function GroupCard({
   };
 
   const handleSelectGroup = (group) => {
-    setSelectedGroup(group);
-    setGroupName(group.groupName);
+    console.log("🧪 Selected group:", group); // 👈 ADD THIS
+    if (
+      group.groupCode === "1" ||
+      group.groupCode === "2" ||
+      group.groupCode === "3"
+    ) {
+      setSelectedGroup(group);
+      setGroupName(group.groupName);
+    } else {
+      setSelectedGroup(null);
+    }
   };
 
   // Tree view recursion
@@ -429,7 +451,7 @@ function GroupCard({
           "parentGroup's child groups",
           parentGroup.childGroups
         )}
-        {parentGroup.childGroups?.map((childGroupID) => {
+        {(parentGroup.childGroups || []).map((childGroupID) => {
           const childGroup = formGroups.find(
             (group) => group.groupID === childGroupID
           );

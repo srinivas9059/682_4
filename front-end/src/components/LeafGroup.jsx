@@ -70,12 +70,18 @@ function LeafGroup({
           </Button>
         </div>
 
-        <Typography sx={{ mt: 3, mb: 2 }}>
-          Link:{" "}
-          <Anchor href={groupLink} target="_blank">
-            {groupLink}
-          </Anchor>
-        </Typography>
+        {groupLink ? (
+          <Typography sx={{ mt: 3, mb: 2 }}>
+            Link:{" "}
+            <Anchor href={groupLink} target="_blank">
+              {groupLink}
+            </Anchor>
+          </Typography>
+        ) : (
+          <Typography sx={{ mt: 3, mb: 2, color: "gray" }}>
+            No group link available.
+          </Typography>
+        )}
       </Box>
     </div>
   );
