@@ -1,0 +1,10 @@
+VITE_BACKEND_URL=http://localhost:3000
+	VITE_CLIENT_BASE_URL=http://localhost:5173
+	
+	VITE_API_KEY=AIzaSyCOEh2M5ce1oIsTPhd-AlN9v3w_-fkWH9U
+	VITE_AUTH_DOMAIN=forms-project-auth.firebaseapp.com
+	VITE_PROJECT_ID=forms-project-auth
+	VITE_STORAGE_BUCKET=forms-project-auth.appspot.com
+	VITE_MESSAGING_SENDER_ID=525852451699
+	VITE_APP_ID=1:525852451699:web:130efe1b21a3115f4d9b06v
+	

@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
-import { useNavigate } from "react-router-dom";
-=======
 import { useNavigate, Link } from "react-router-dom";
->>>>>>> srinivas-backendd
 import FormListItem from "./FormListItem";
 import { useAuth } from "../contexts/AuthContext";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -17,41 +13,6 @@ function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-<<<<<<< HEAD
-  const { currentUser, logout } = useAuth();
-
-  useEffect(() => {
-    if (!currentUser) navigate("/login");
-    localStorage.removeItem("formID");
-    const fetchData = async () => {
-      const response = await fetch(
-        `${BACKEND_URL}/getAllFormTitlesIDs?userID=${
-          currentUser && currentUser.uid
-        }`,
-        {
-          method: "GET",
-        }
-      );
-      const json = await response.json();
-      setAllFormTitlesIDs(json.allFormTitlesIDs);
-      setIsLoading(false);
-    };
-    fetchData();
-  }, []);
-
-  const handleCreateNewForm = async () => {
-    const response = await fetch(
-      `${BACKEND_URL}/createNewForm?userID=${currentUser.uid}`,
-      {
-        method: "GET",
-      }
-    );
-    const json = await response.json();
-    if (response.ok) {
-      localStorage.setItem("formID", json.form.formID);
-      navigate(`/form/${json.form.formID}`);
-    } else console.log(json);
-=======
   const auth = useAuth();
   
   // If auth is not yet initialized, show loading
@@ -132,7 +93,6 @@ function Home() {
     } catch (err) {
       console.error("Error creating form:", err);
     }
->>>>>>> srinivas-backendd
   };
 
   const handleDeleteFormListItem = async (id) => {
@@ -142,34 +102,15 @@ function Home() {
     });
     const json = await response.json();
     if (response.ok) {
-<<<<<<< HEAD
-      setAllFormTitlesIDs((titles) => {
-        const newTitles = titles.filter((t) => t.formID !== id);
-        return newTitles;
-      });
-=======
       setAllFormTitlesIDs((titles) => titles.filter((t) => t.formID !== id));
->>>>>>> srinivas-backendd
     } else console.log(json.msg);
   };
 
   const handleDuplicateFormListItem = async (id) => {
-<<<<<<< HEAD
-    const response = await fetch(`${BACKEND_URL}/duplicateForm/${id}`, {
-      method: "GET",
-    });
-    const json = await response.json();
-    if (response.ok) {
-      setAllFormTitlesIDs((titles) => {
-        const newTitles = [...titles, json.form];
-        return newTitles;
-      });
-=======
     const response = await fetch(`${BACKEND_URL}/duplicateForm/${id}`);
     const json = await response.json();
     if (response.ok) {
       setAllFormTitlesIDs((titles) => [...titles, json.form]);
->>>>>>> srinivas-backendd
     } else console.log(json.msg);
   };
 
@@ -194,12 +135,6 @@ function Home() {
       <div className="home-page">
         <nav className="navbar nav-custom-home-page">
           <div className="container-fluid">
-<<<<<<< HEAD
-            <a className="navbar-brand d-flex app-logo" href="/">
-              <TextSnippetRoundedIcon className="m-1" />
-              <span className="fs-4 ms-1">Forms</span>
-            </a>
-=======
             <button 
               className="navbar-brand d-flex app-logo border-0 bg-transparent"
               onClick={handleHomeNavigation}
@@ -208,7 +143,6 @@ function Home() {
               <TextSnippetRoundedIcon className="m-1" />
               <span className="fs-4 ms-1">Forms</span>
             </button>
->>>>>>> srinivas-backendd
             <div className="email-and-logout-div">
               <div>
                 <AccountMenu handleLogOut={handleLogOut} />
@@ -216,10 +150,7 @@ function Home() {
             </div>
           </div>
         </nav>
-<<<<<<< HEAD
-=======
 
->>>>>>> srinivas-backendd
         <section className="create-new-form border-bottom border-dark-subtle">
           <div className="create-new-form-div">
             <div className="pb-3">Start a new form</div>
@@ -233,34 +164,23 @@ function Home() {
                 </CardContent>
               </Card>
             </div>
-<<<<<<< HEAD
-            {/* <Button
-              variant="contained"
-              disabled={isLoading}
-              onClick={handleCreateNewForm}
-            >
-              <NoteAddIcon className="me-1" />
-              Create new form
-            </Button> */}
-          </div>
-        </section>
-=======
           </div>
         </section>
 
->>>>>>> srinivas-backendd
-        <section className="all-forms-list-section">
-          <div className="all-forms-heading poppins-semibold">All forms</div>
-          <div className="all-forms-list">
-            {allFormTitlesIDs.map((form, index) => (
-              <FormListItem
-                key={index}
-                title={form.formTitle}
-                id={form.formID}
-                handleDeleteFormListItem={handleDeleteFormListItem}
-                handleDuplicateFormListItem={handleDuplicateFormListItem}
-              />
-            ))}
+        <section className="all-forms">
+          <div className="all-forms-div">
+            <div className="pb-3">All forms</div>
+            <div className="all-forms-list">
+              {allFormTitlesIDs.map((form) => (
+                <FormListItem
+                  key={form.formID}
+                  title={form.formTitle}
+                  id={form.formID}
+                  handleDeleteFormListItem={handleDeleteFormListItem}
+                  handleDuplicateFormListItem={handleDuplicateFormListItem}
+                />
+              ))}
+            </div>
           </div>
         </section>
       </div>

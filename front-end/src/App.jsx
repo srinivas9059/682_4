@@ -27,9 +27,14 @@ function App() {
       withGlobalStyles
       withNormalizeCSS
     >
+      <Notifications
+        position="top-right"
+        limit={3}
+        autoClose={2500}
+        containerWidth={300}
+      />
       <AuthProvider>
-        <Router>
-          <Notifications />
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SessionManager />
           <Routes>
             <Route path="/" element={<Home />} />

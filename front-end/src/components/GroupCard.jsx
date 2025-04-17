@@ -1,17 +1,11 @@
 import { useState, useEffect } from "react";
-<<<<<<< HEAD
-import { IconButton, Tooltip, Box, Typography } from "@mui/material";
-=======
 import { IconButton, Tooltip, Box, Button } from "@mui/material";
->>>>>>> srinivas-backendd
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import GroupNameModal from "./GroupNameModal";
 import ParentGroup from "./ParentGroup";
 import ChildGroup from "./ChildGroup";
 import LeafGroup from "./LeafGroup";
-<<<<<<< HEAD
-=======
 import debounce from "lodash/debounce";
 
 // Default theme to fallback if user resets
@@ -20,7 +14,6 @@ const defaultTheme = {
   fontFamily: "Arial",
   backgroundImage: "",
 };
->>>>>>> srinivas-backendd
 
 function GroupCard({
   formParentGroup,
@@ -39,52 +32,6 @@ function GroupCard({
   const [groupName, setGroupName] = useState("");
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [modalAction, setModalAction] = useState(null);
-<<<<<<< HEAD
-  // const [updateTrigger, setUpdateTrigger] = useState(false);
-
-  //const forceUpdate = () => setUpdateTrigger((prev) => !prev);
-
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-  /* useEffect(() => {
-    console.log("Component will re-render now");
-
-    formParentGroups.map(renderTreeItem);
-
-    console.log("Component will re-rendered");
-  }, [updateTrigger]);
-
-  const renderTreeItem = (parentGroup) => {
-    console.log(
-      parentGroup.groupID,
-      "   ",
-      parentGroup.groupName,
-      "parentGroup's child groups",
-      parentGroup.childGroups
-    );
-    parentGroup.childGroups?.map((childGroupID) => {
-      const childGroup = formGroups.find(
-        (group) => group.groupID === childGroupID
-      );
-      if (!childGroup) return null;
-      return renderTreeItem(childGroup);
-    });
-  }; */
-
-  useEffect(() => {
-    console.log("group name changed");
-  }, [groupName]);
-
-  const handleGroupNameChange = (event) => {
-    setGroupName(event.target.value);
-    /*   const newGroupName = event.target.value;
-    selectedGroup.groupName = newGroupName;
-    updateFormGroups(selectedGroup);
-    updateFormGroup(selectedGroup); */
-  };
-  const handleNameSave = () => {
-    console.log("Saving changes for group:", selectedGroup.groupID);
-=======
   // State to track if theme panel is expanded
   const [themeOpen, setThemeOpen] = useState(true);
 
@@ -275,7 +222,6 @@ function GroupCard({
 
   const handleNameSave = () => {
     if (!selectedGroup) return;
->>>>>>> srinivas-backendd
     const updatedGroups = formGroups.map((group) =>
       group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
@@ -284,18 +230,10 @@ function GroupCard({
     setFormGroups(updatedGroups);
     selectedGroup.groupName = groupName;
     updateFormGroup(selectedGroup);
-<<<<<<< HEAD
-    // forceUpdate();
-  };
-
-  const handleParentNameSave = () => {
-    console.log("Saving changes for group:", selectedGroup.groupID);
-=======
   };
 
   const handleParentNameSave = () => {
     if (!selectedGroup) return;
->>>>>>> srinivas-backendd
     const updatedGroups = formGroups.map((group) =>
       group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
@@ -304,23 +242,6 @@ function GroupCard({
     setFormParentGroups(updatedGroups);
     selectedGroup.groupName = groupName;
     updateFormParentGroup(selectedGroup);
-<<<<<<< HEAD
-    //forceUpdate();
-  };
-
-  const handleModalOpen = (action, groupID = null) => {
-    setOpenModal(true);
-    setModalAction(action);
-    console.log("groupID", groupID);
-    if (groupID) {
-      var group = formParentGroups.find((g) => g.groupID === groupID);
-      if (group === undefined) {
-        group = formGroups.find((g) => g.groupID === groupID);
-      }
-      console.log(" Group", group);
-      setSelectedGroup(group);
-      console.log("Selected Group", selectedGroup);
-=======
   };
 
   const handleModalOpen = (action, gid = null) => {
@@ -331,7 +252,6 @@ function GroupCard({
         formParentGroups.find((pg) => pg.groupID === gid) ||
         formGroups.find((cg) => cg.groupID === gid);
       setSelectedGroup(found || null);
->>>>>>> srinivas-backendd
     }
   };
 
@@ -340,23 +260,6 @@ function GroupCard({
     setGroupName("");
     setSelectedGroup(null);
     setModalAction(null);
-<<<<<<< HEAD
-    setGroupLink("");
-  };
-
-  const handleSave = () => {
-    console.log("Selected Group after clicking save", selectedGroup);
-    if (modalAction === "addParent") {
-      handleAddParentFormGroups(groupName);
-    } else if (modalAction === "addChild") {
-      handleAddChildFormGroups(selectedGroup.groupID, groupName);
-    } else if (modalAction === "addLeaf") {
-      handleAddFormGroups(selectedGroup.groupID, groupName);
-    }
-    handleModalClose();
-    //forceUpdate();
-=======
->>>>>>> srinivas-backendd
   };
 
   const handleAddFormGroups = async (groupID, groupName) => {
@@ -381,11 +284,7 @@ function GroupCard({
         (g) => g.groupID === groupID
       );
       console.log("childParentGroupIndex", childParentGroupIndex);
-<<<<<<< HEAD
-      //formGroups[childParentGroupIndex].childGroups.push(newGroup.groupID);
-=======
-      
->>>>>>> srinivas-backendd
+
       setFormGroups((oldFormGroups) => {
         return oldFormGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -443,11 +342,7 @@ function GroupCard({
         (g) => g.groupID === groupID
       );
       console.log("childParentGroupIndex", childParentGroupIndex);
-<<<<<<< HEAD
-      //formGroups[childParentGroupIndex].childGroups.push(newGroup.groupID);
-=======
-      
->>>>>>> srinivas-backendd
+
       setFormGroups((oldFormGroups) => {
         return oldFormGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -499,23 +394,6 @@ function GroupCard({
     ]);
   };
 
-<<<<<<< HEAD
-  const handleSelectGroup = (group) => {
-    setSelectedGroup(group);
-    setGroupName(group.groupName);
-    //handleModalOpen("edit", group.groupID);
-  };
-
-  useEffect(() => {
-    setFormParentGroups(formParentGroup);
-    setFormGroups(content);
-    // forceUpdate();
-    console.log("Content refreshed  ", content);
-  }, [formParentGroup, content]);
-
-  const renderTreeItems = (parentGroup) => {
-    if (!parentGroup) return null; // Guard clause to prevent rendering undefined groups
-=======
   const handleSave = () => {
     console.log("Selected Group after clicking save", selectedGroup);
     if (modalAction === "addParent") {
@@ -536,7 +414,6 @@ function GroupCard({
   // Tree view recursion
   const renderTreeItems = (parentGroup) => {
     if (!parentGroup) return null;
->>>>>>> srinivas-backendd
 
     return (
       <TreeItem
@@ -556,11 +433,7 @@ function GroupCard({
           const childGroup = formGroups.find(
             (group) => group.groupID === childGroupID
           );
-<<<<<<< HEAD
-          if (!childGroup) return null; // Prevents rendering deleted child groups
-=======
           if (!childGroup) return null;
->>>>>>> srinivas-backendd
           return renderTreeItems(childGroup);
         })}
       </TreeItem>
@@ -581,15 +454,10 @@ function GroupCard({
             </IconButton>
           </Tooltip>
         </div>
-<<<<<<< HEAD
-        <div className="group-card" style={{ height: "600px", width: "100%" }}>
-          <div style={{ display: "flex", height: "100%", width: "100%" }}>
-=======
 
         <div className="group-card" style={{ height: "600px", width: "100%" }}>
           <div style={{ display: "flex", height: "100%", width: "100%" }}>
             {/* Left Panel: Tree */}
->>>>>>> srinivas-backendd
             <div
               style={{
                 width: "240px",
@@ -601,43 +469,6 @@ function GroupCard({
                 {formParentGroups.map(renderTreeItems)}
               </SimpleTreeView>
             </div>
-<<<<<<< HEAD
-            <Box sx={{ flex: 1, padding: 2, overflow: "auto" }}>
-              {console.log(selectedGroup)}
-              {selectedGroup &&
-                (selectedGroup.groupCode === "1" ? (
-                  <ParentGroup
-                    groupName={groupName}
-                    handleGroupNameChange={handleGroupNameChange}
-                    handleParentNameSave={handleParentNameSave}
-                    handleDeleteParentFormGroup={handleDeleteParentFormGroup}
-                    selectedGroup={selectedGroup}
-                    openModal={handleModalOpen}
-                  />
-                ) : selectedGroup.groupCode === "2" ? (
-                  <ChildGroup
-                    groupName={groupName}
-                    handleGroupNameChange={handleGroupNameChange}
-                    handleNameSave={handleNameSave}
-                    handleDeleteFormGroup={handleDeleteFormGroup}
-                    selectedGroup={selectedGroup}
-                    openModal={handleModalOpen}
-                  />
-                ) : (
-                  <LeafGroup
-                    groupName={groupName}
-                    setGroupName={setGroupName}
-                    handleNameSave={handleNameSave}
-                    groupLink={selectedGroup.groupLink}
-                    handleDeleteFormGroup={handleDeleteFormGroup}
-                    selectedGroup={selectedGroup}
-                    handleGroupNameChange={handleGroupNameChange}
-                  />
-                ))}
-            </Box>
-          </div>
-        </div>
-=======
 
             {/* Right Panel: Group Editor */}
             <Box sx={{ flex: 1, padding: 2, overflow: "auto" }}>
@@ -788,7 +619,6 @@ function GroupCard({
           </div>
         </div>
 
->>>>>>> srinivas-backendd
         <GroupNameModal
           open={openModal}
           handleClose={handleModalClose}

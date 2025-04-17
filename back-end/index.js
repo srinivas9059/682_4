@@ -5,6 +5,15 @@ import mongoose from "mongoose";
 import Form from "./models/formModel.js";
 import "dotenv/config.js";
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("Connected to MongoDB successfully!");
+  })
+  .catch((err) => {
+    console.error("Connection to database failed !", err);
+  });
+
 const PORT = process.env.PORT;
 const app = express();
 const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL;
@@ -672,14 +681,6 @@ app.get("/duplicateForm/:id", async (req, res) => {
   }
 });
 
-mongoose
-  .connect(process.env.MONGO_DB_URL)
-  .then(() => {
-    console.log("Connected to database.");
-    app.listen(PORT, () => {
-      console.log(`Listening on port ${PORT} ...`);
-    });
-  })
-  .catch(() => {
-    console.log("Connection to database failed !");
-  });
+app.listen(PORT, () => {
+  console.log(`Listening on port ${PORT} ...`);
+});

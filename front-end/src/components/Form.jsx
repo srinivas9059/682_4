@@ -316,36 +316,74 @@ function Form() {
 
   // Called by the user or from other places to save entire form
   const handleSave = async () => {
-    const id = localStorage.getItem("formID");
-    console.log("Form Data to be saved", formData);
-    const bodyjson = JSON.stringify({
-      formID: id,
-      formTitle: formTitle,
-      formDescription: formDescription,
-      formSections: formData.formSections,
-      formGroups: formGroups,
-      formParentGroups: formParentGroups,
-    });
-    console.log("Form Data to be saved", bodyjson);
-
-    const response = await fetch(`${BACKEND_URL}/updateForm`, {
-      method: "PUT",
-      body: JSON.stringify({
+    try {
+      const id = localStorage.getItem("formID");
+      
+      // Create a minimal payload
+      const updatePayload = {
         formID: id,
         formTitle: formTitle,
         formDescription: formDescription,
         formSections: formData.formSections,
-        formGroups: formGroups,
-        formParentGroups: formParentGroups,
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+        formGroups: formGroups.map(group => ({
+          groupID: group.groupID,
+          groupName: group.groupName,
+          parentGroupID: group.parentGroupID,
+          childGroups: group.childGroups,
+          theme: group.theme
+        })),
+        formParentGroups: formParentGroups.map(group => ({
+          groupID: group.groupID,
+          groupName: group.groupName,
+          childGroups: group.childGroups,
+          theme: group.theme
+        }))
+      };
+
+      const response = await fetch(`${BACKEND_URL}/updateForm`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          // Add CORS headers
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to save form: ${errorData}`);
+      }
+
+      const json = await response.json();
+      notifications.clean();
+      notifications.show({
+        color: "#edbb5f",
+        message: "Form Saved",
+        autoClose: 2500,
+      });
+    } catch (error) {
+      console.error('Error saving form:', error);
+      notifications.clean();
+      notifications.show({
+        color: "red",
+        message: error.message || "Failed to save form. Please try again.",
+        autoClose: 2500,
+      });
+    }
+  };
+
+  // Called by <Settings />: add a new form group
+  const handleAddFormGroup = async (groupName, parentGroupID) => {
+    const id = localStorage.getItem("formID");
+    const response = await fetch(
+      `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${parentGroupID}`,
+      { method: "GET" }
+    );
     const json = await response.json();
-    notifications.show({
-      color: "#edbb5f",
-      message: "Form Saved",
-      autoClose: 2500,
-    });
+    const newGroup = json.formGroup;
+    setFormGroups((oldGroups) => [...oldGroups, newGroup]);
+    console.log("Form Groups after adding", formGroups);
   };
 
   return (

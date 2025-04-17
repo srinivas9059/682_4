@@ -1,0 +1,8 @@
+# PORT=3000
+# 	MONGO_DB_URL=mongodb+srv://dbuser:SmafeO8gqwb7br8L@cluster0.kpfchi2.mongodb.net/formsDB?retryWrites=true&w=majority&appName=Cluster0
+# 	CLIENT_BASE_URL=https://682-4-back.vercel.app/
+#mongodb+srv://gvsrinivasa09:qwerty789@cluster0.ert3e.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+PORT=3000
+MONGO_DB_URL=mongodb+srv://gvsrinivasa09:qwerty789@cluster0.ert3e.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+CLIENT_BASE_URL=http://localhost:5173
+SECRET_KEY=2a7f3b0e5c6d4a8a9b1e2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f
