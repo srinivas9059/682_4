@@ -16,6 +16,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 
+import ChatWindow from "./ChatWindow";
+
 function Dashboard() {
   const [groupsData, setGroupsData] = useState([]);
   const [selectedNodes1, setSelectedNodes1] = useState({});
@@ -401,6 +403,54 @@ function Dashboard() {
     </Box>
   );
 
+  const selectedGroupNames1 = determineGroupNames(selectedNodes1);
+  const selectedGroupNames2 = determineGroupNames(selectedNodes2);
+
+  const surveyData = {
+      title: localStorage.getItem("formTitle") || "Untitled Survey",
+      questions: originalFormSections.flatMap(section =>
+          section.questions.map(q => ({
+              questionID: q.questionID,
+              questionType: q.questionType,
+              text: q.question,
+              options: q.options || [],
+              upperLimit: q.upperLimit || null,
+              labels: q.labels || [],
+          }))
+      ),
+      summary: groupsData.reduce((acc, group) => {
+          const cleanGroupName =
+            selectedGroupNames1[group.groupID] ||
+            selectedGroupNames2[group.groupID] ||
+            group.groupName ||
+            group.groupID;
+
+          acc[cleanGroupName] = {
+              groupID: group.groupID,
+              groupName: cleanGroupName,
+              sections: {}
+          };
+
+          Object.entries(group.sections || {}).forEach(([sectionID, section]) => {
+              acc[cleanGroupName].sections[sectionID] = {
+                  sectionID,
+                  questions: section.questions.map(q => ({
+                      questionID: q.questionID,
+                      question: q.question,
+                      questionType: q.questionType,
+                      subData: q.subData || {},
+                      options: q.options || [],
+                      labels: q.labels || [],
+                      upperLimit: q.upperLimit || null
+                  }))
+              };
+          });
+//           console.log("🧠 Final surveyData:", surveyData);
+          return acc;
+      }, {})
+  };
+
+
   return (
     <div className="form-dashboard-tab">
       {/* Heading + filters */}
@@ -474,6 +524,7 @@ function Dashboard() {
             Please select one or more groups to view the data.
           </p>
         )}
+        <ChatWindow surveyData={surveyData} />
     </div>
   );
 }

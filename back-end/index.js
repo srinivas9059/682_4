@@ -4,6 +4,8 @@ import cors from "cors";
 import mongoose from "mongoose";
 import Form from "./models/formModel.js";
 import "dotenv/config.js";
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
 
 const PORT = process.env.PORT;
 const app = express();
@@ -120,18 +122,6 @@ app.delete("/deleteForm/:id", async (req, res) => {
       .json({ msg: "See error message !", errorMsg: error.message });
   }
 });
-
-/* app.get("/getFormData/:id", async (req, res) => {
-  try {
-    const form = await Form.findOne({ formID: req.params.id });
-    if (form) res.status(200).json({ form: form });
-    else res.status(404).json({ msg: "Form not found." });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ msg: "See error message !", errorMsg: error.message });
-  }
-}); */
 
 app.get("/getFormData/:id", async (req, res) => {
   try {
@@ -466,7 +456,16 @@ app.get("/getSummaryDashboardData/:id", async (req, res) => {
       section.questions.forEach((q) => {
         // Initialize sections and questions for each group
         form.formGroups.forEach((group) => {
-          const groupSection = groupResponses[group.groupID].sections;
+          const groupData = groupResponses[group.groupID];
+
+          // 🛡️ Skip if group wasn't initialized (avoids TypeError)
+          if (!groupData) {
+            console.warn(`⚠️ groupID "${group.groupID}" missing from groupResponses`);
+            return;
+          }
+
+          const groupSection = groupData.sections;
+
           if (!groupSection[section.sectionID]) {
             groupSection[section.sectionID] = {
               sectionID: section.sectionID,
@@ -500,11 +499,7 @@ app.get("/getSummaryDashboardData/:id", async (req, res) => {
             questionObj.labels = q.labels;
           }
 
-          console.log("Question Type", q.questionType);
-          console.log("Question Obj", questionObj);
-          console.log("-----------------done-----------------");
-
-          // Gather responses per group and update subData accordingly
+          // Collect responses per group
           form.formResponses.forEach((r) => {
             if (r.userGroupID === group.groupID) {
               r.userResponse.forEach((uRes) => {
@@ -531,19 +526,20 @@ app.get("/getSummaryDashboardData/:id", async (req, res) => {
       });
     });
 
-    // console.log("groupResponses", groupResponses);
-
+    // ✅ Logging each group's processed data
     form.formSections.forEach((section) => {
       section.questions.forEach((q) => {
-        // Initialize sections and questions for each group
         form.formGroups.forEach((group) => {
+          const groupData = groupResponses[group.groupID];
+          if (!groupData || !groupData.sections?.[section.sectionID]) return;
+
           console.log(
-            "groupResponses[group.groupID].sections",
-            groupResponses[group.groupID].sections
+            "groupResponses[groupID].sections",
+            groupData.sections
           );
           console.log(
-            "groupResponses[group.groupID].questions",
-            groupResponses[group.groupID].sections[section.sectionID].questions
+            "groupResponses[groupID].questions",
+            groupData.sections[section.sectionID].questions
           );
         });
       });
@@ -558,11 +554,13 @@ app.get("/getSummaryDashboardData/:id", async (req, res) => {
       msg: "Summary Data and number of responses sent.",
     });
   } catch (error) {
+    console.error("❌ Error in /getSummaryDashboardData:", error);
     res
       .status(500)
       .json({ msg: "Error retrieving form data", errorMsg: error.message });
   }
 });
+
 
 app.post("/setIsAcceptingResponses", async (req, res) => {
   try {
@@ -662,6 +660,228 @@ app.get("/getAllFormResponses/:id", async (req, res) => {
       .json({ msg: "Failed to fetch form responses", error: error.message });
   }
 });
+
+//
+//app.post("/ask-ai", async (req, res) => {
+//  const { question, surveyData } = req.body;
+//
+//  console.log("🧠 Question:", question);
+//  console.log("🧠 SurveyData received?", !!surveyData);
+//  console.log("🧠 SurveyData keys:", surveyData ? Object.keys(surveyData) : "null");
+//
+//  if (!question || !surveyData || !surveyData.questions || !surveyData.summary){
+//    return res.status(400).json({
+//      error: "Missing one or more required fields: 'question', 'questions', 'summary'.",
+//    });
+//  }
+//
+//
+//  console.log("🧠 Incoming question:", question);
+//  console.log("🧠 Survey title:", surveyData?.title);
+//  console.log("🧠 Number of questions:", surveyData?.questions?.length);
+//  console.log("🧠 API Key present:", !!process.env.OPENAI_API_KEY);
+//
+//  if (!process.env.OPENAI_API_KEY) {
+//    console.error("❌ OpenAI API key is missing.");
+//    return res.status(500).json({ error: "OpenAI API key is not set." });
+//  }
+//
+//  if (!surveyData || !surveyData.questions || !question) {
+//    console.error("❌ Missing required input.");
+//    return res.status(400).json({ error: "Invalid request. Missing question or survey data." });
+//  }
+//
+//  // 🔐 Build a cleaner summary string to avoid JSON.stringify crashes
+//  let summaryString = "Summary:\n";
+//  try {
+//    if (surveyData.summary && typeof surveyData.summary === "object") {
+//      for (const [groupName, groupData] of Object.entries(surveyData.summary)) {
+//        summaryString += `\nGroup: ${groupName}\n`;
+//
+//        for (const [sectionID, section] of Object.entries(groupData.sections || {})) {
+//          summaryString += `  Section ${sectionID}:\n`;
+//
+//          section.questions?.forEach((q) => {
+//            summaryString += `    - Q: ${q.question}\n`;
+//            if (q.questionType === 1 && q.subData) {
+//              const options = Object.entries(q.subData)
+//                .map(([opt, count]) => `${opt}: ${count}`)
+//                .join(", ");
+//              summaryString += `      Options: ${options}\n`;
+//            }
+//            if (q.questionType === 3 && Array.isArray(q.subData)) {
+//              summaryString += `      Scale Counts: ${q.subData.join(", ")}\n`;
+//            }
+//          });
+//        }
+//      }
+//    } else {
+//      summaryString += "No structured summary found.";
+//    }
+//  } catch (err) {
+//    console.error("⚠️ Could not format summary:", err.message);
+//    summaryString += "Error reading summary.";
+//  }
+//
+//  const systemPrompt = `
+//You are a helpful AI assistant analyzing survey results.
+//
+//Survey Title: ${surveyData.title}
+//
+//Survey Questions:
+//${surveyData.questions.map((q, i) => `${i + 1}. ${q.text} [type=${q.questionType}]`).join("\n")}
+//
+//${summaryString}
+//
+//Based on this, answer the user's question with specific, relevant, and insightful analysis.
+//`;
+//
+//  try {
+//    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+//      method: "POST",
+//      headers: {
+//        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+//        "Content-Type": "application/json",
+//      },
+//      body: JSON.stringify({
+//        model: "gpt-3.5-turbo",
+//        messages: [
+//          { role: "system", content: systemPrompt },
+//          { role: "user", content: question },
+//        ],
+//        temperature: 0.7,
+//      }),
+//    });
+//
+//    const data = await response.json();
+//
+//    console.log("🧠 OpenAI response status:", response.status);
+//    console.log("🧠 OpenAI response data:", JSON.stringify(data, null, 2));
+//
+//    if (!response.ok) {
+//      const errorMsg = data?.error?.message || "OpenAI returned an error.";
+//      console.error("❌ OpenAI API Error:", errorMsg);
+//      return res.status(500).json({ error: `OpenAI error (${response.status}): ${errorMsg}` });
+//    }
+//
+//    if (data?.choices?.[0]?.message?.content) {
+//      return res.status(200).json({ answer: data.choices[0].message.content });
+//    } else {
+//      return res.status(500).json({ error: "OpenAI returned no usable response." });
+//    }
+//
+//  } catch (err) {
+//    console.error("❌ Error in /ask-ai route:", err);
+//    return res.status(500).json({ error: err.message || "AI assistant request failed." });
+//  }
+//});
+
+app.post("/ask-ai", async (req, res) => {
+  const { question, surveyData } = req.body;
+
+  console.log("🧠 Question:", question);
+  console.log("🧠 SurveyData received?", !!surveyData);
+  console.log("🧠 SurveyData keys:", surveyData ? Object.keys(surveyData) : "null");
+
+  if (!question || !surveyData || !surveyData.questions || !surveyData.summary) {
+    return res.status(400).json({
+      error: "Missing one or more required fields: 'question', 'questions', 'summary'.",
+    });
+  }
+
+  if (!process.env.XAI_API_KEY) {
+    console.error("❌ Grok API key is missing.");
+    return res.status(500).json({ error: "Grok API key is not set." });
+  }
+
+  // 🔐 Build a cleaner summary string to avoid JSON.stringify crashes
+  let summaryString = "Summary:\n";
+  try {
+    if (surveyData.summary && typeof surveyData.summary === "object") {
+      for (const [groupName, groupData] of Object.entries(surveyData.summary)) {
+        summaryString += `\nGroup: ${groupName}\n`;
+
+        for (const [sectionID, section] of Object.entries(groupData.sections || {})) {
+          summaryString += `  Section ${sectionID}:\n`;
+
+          section.questions?.forEach((q) => {
+            summaryString += `    - Q: ${q.question}\n`;
+            if (q.questionType === 1 && q.subData) {
+              const options = Object.entries(q.subData)
+                .map(([opt, count]) => `${opt}: ${count}`)
+                .join(", ");
+              summaryString += `      Options: ${options}\n`;
+            }
+            if (q.questionType === 3 && Array.isArray(q.subData)) {
+              summaryString += `      Scale Counts: ${q.subData.join(", ")}\n`;
+            }
+          });
+        }
+      }
+    } else {
+      summaryString += "No structured summary found.";
+    }
+  } catch (err) {
+    console.error("⚠️ Could not format summary:", err.message);
+    summaryString += "Error reading summary.";
+  }
+
+  const systemPrompt = `
+You are a helpful AI assistant analyzing survey results.
+
+Survey Title: ${surveyData.title}
+
+Survey Questions:
+${surveyData.questions.map((q, i) => `${i + 1}. ${q.text} [type=${q.questionType}]`).join("\n")}
+
+${summaryString}
+
+Based on this, answer the user's question with specific, relevant, and insightful analysis.
+`;
+
+  try {
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "grok-3-latest",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        temperature: 0.7,
+        stream: false
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log("🧠 Grok response status:", response.status);
+    console.log("🧠 Grok response data:", JSON.stringify(data, null, 2));
+
+    if (!response.ok) {
+      const errorMsg = data?.error?.message || "Grok returned an error.";
+      console.error("❌ Grok API Error:", errorMsg);
+      return res.status(500).json({ error: `Grok error (${response.status}): ${errorMsg}` });
+    }
+
+    if (data?.choices?.[0]?.message?.content) {
+      return res.status(200).json({ answer: data.choices[0].message.content });
+    } else {
+      return res.status(500).json({ error: "Grok returned no usable response." });
+    }
+
+  } catch (err) {
+    console.error("❌ Error in /ask-ai route:", err);
+    return res.status(500).json({ error: err.message || "Grok assistant request failed." });
+  }
+});
+
+
+
 
 
 mongoose
