@@ -5,22 +5,30 @@ import mongoose from "mongoose";
 import Form from "./models/formModel.js";
 import "dotenv/config.js";
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("Connected to MongoDB successfully!");
-  })
-  .catch((err) => {
-    console.error("Connection to database failed !", err);
-  });
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000;
 const app = express();
 const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL;
 
 app.use(express.json());
 app.use(cors());
 
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to connect to DB:", err);
+  });
+
+// Base Route
 app.get("/", async (req, res) => {
   const forms = await Form.find({});
   res.json(forms);
@@ -29,6 +37,144 @@ app.get("/", async (req, res) => {
 app.get("/ping", async (req, res) => {
   res.json({ msg: "Active" });
 });
+
+// AI Assistant Route (Grok API)
+app.post("/ask-ai", async (req, res) => {
+  const { question, surveyData } = req.body;
+
+  if (
+    !question ||
+    !surveyData ||
+    !surveyData.questions ||
+    !surveyData.summary
+  ) {
+    return res.status(400).json({
+      error: "Missing required fields: 'question', 'questions', 'summary'.",
+    });
+  }
+
+  if (!process.env.XAI_API_KEY) {
+    console.error("❌ Missing Grok API key.");
+    return res.status(500).json({ error: "Grok API key is not set." });
+  }
+
+  let summaryString = "Summary:\n";
+  try {
+    for (const [groupName, groupData] of Object.entries(surveyData.summary)) {
+      summaryString += `\nGroup: ${groupName}\n`;
+      for (const [sectionID, section] of Object.entries(
+        groupData.sections || {}
+      )) {
+        summaryString += `  Section ${sectionID}:\n`;
+        section.questions?.forEach((q) => {
+          summaryString += `    - Q: ${q.question}\n`;
+          if (q.questionType === 1 && q.subData) {
+            const options = Object.entries(q.subData)
+              .map(([opt, count]) => `${opt}: ${count}`)
+              .join(", ");
+            summaryString += `      Options: ${options}\n`;
+          }
+          if (q.questionType === 3 && Array.isArray(q.subData)) {
+            summaryString += `      Scale Counts: ${q.subData.join(", ")}\n`;
+          }
+        });
+      }
+    }
+  } catch (err) {
+    summaryString += "⚠️ Error formatting summary.\n";
+  }
+
+  const systemPrompt = `
+You are a helpful AI assistant analyzing survey results.
+
+Survey Title: ${surveyData.title}
+
+Survey Questions:
+${surveyData.questions
+  .map((q, i) => `${i + 1}. ${q.text} [type=${q.questionType}]`)
+  .join("\n")}
+
+${summaryString}
+
+Based on this, answer the user's question with specific, relevant, and insightful analysis.
+`;
+
+  try {
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "grok-3-latest",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        temperature: 0.7,
+        stream: false,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(500).json({
+        error: `Grok error: ${data?.error?.message || "Unknown error"}`,
+      });
+    }
+
+    const answer = data?.choices?.[0]?.message?.content;
+    if (!answer) {
+      return res.status(500).json({ error: "Grok returned no answer." });
+    }
+
+    res.status(200).json({ answer });
+  } catch (err) {
+    console.error("❌ Grok Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get All Form Responses
+app.get("/getAllFormResponses/:id", async (req, res) => {
+  try {
+    const form = await Form.findOne({ formID: req.params.id });
+    if (!form) return res.status(404).json({ msg: "Form not found." });
+
+    return res.status(200).json({
+      formTitle: form.formTitle,
+      formID: form.formID,
+      formSections: form.formSections,
+      formResponses: form.formResponses,
+    });
+  } catch (error) {
+    console.error("Error fetching form responses:", error);
+    return res
+      .status(500)
+      .json({ msg: "Failed to fetch form responses", error: error.message });
+  }
+});
+
+// ✅ All other routes should be inserted below (from your Code 1 version)
+// This includes:
+// - /createNewForm
+// - /updateSection
+// - /updateForm
+// - /getSummaryDashboardData/:id
+// - /saveUserFormResponse
+// - /setIsAcceptingResponses
+// - /getFormIsAcceptingResponses
+// - /duplicateForm
+// - /createNewFormGroup
+// - /createNewChildFormGroup
+// - /createNewParentFormGroup
+// - /getAllFormTitlesIDs
+// - /deleteForm
+// - /getFormData
+// - /updateFormGroupTheme
+
+// 💡 Tip: Paste all of them directly below to keep the file complete
 
 // 🔥 createNewForm now reads formTitle from req.query or defaults to "Untitled Form"
 app.get("/createNewForm", async (req, res) => {
@@ -58,7 +204,7 @@ app.get("/createNewForm", async (req, res) => {
       groupCode: "3",
       parentGroupID: defaultParentGroupID,
       groupName: "Group 1",
-      groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${defaultGroupID}`,
+      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
     },
   ];
   const formIsAcceptingResponses = true;
@@ -218,7 +364,7 @@ app.put("/updateForm", async (req, res) => {
       } else {
         // Add new section
         form.formSections.push(incomingSection);
-        form.markModified(`formSections`);
+        form.markModified("formSections");
       }
     });
 
@@ -650,7 +796,7 @@ app.get("/duplicateForm/:id", async (req, res) => {
       {
         groupID: defaultGroupID,
         groupName: "Group 1",
-        groupLink: `${CLIENT_BASE_URL}/#/userform/${newFormID}/${defaultGroupID}`,
+        groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
       },
     ];
     const defaultParentGroupID = randomstring.generate(7);
@@ -666,6 +812,7 @@ app.get("/duplicateForm/:id", async (req, res) => {
       userID: form.userID,
       formID: newFormID,
       formTitle: `Copy of ${form.formTitle}`,
+
       formDescription: form.formDescription,
       formSections: JSON.parse(JSON.stringify(form.formSections)), // Duplicate sections
       formResponses: [],
@@ -679,8 +826,4 @@ app.get("/duplicateForm/:id", async (req, res) => {
       .status(500)
       .json({ msg: "See error message !", errorMsg: error.message });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT} ...`);
 });
