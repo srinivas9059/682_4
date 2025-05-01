@@ -1,0 +1,159 @@
+/* ---------------------------------------
+   DARK THEME: Actual styles that apply
+   when .dark-mode is added to <body>
+----------------------------------------- */
+#dark-mode-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 4.5rem; /* ✅ Moved left of profile icon */
+  z-index: 9000;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 40px;
+  height: 40px;
+}
+
+body.dark-mode {
+  background-color: #1e1e1e;
+  color: #f0f0f0;
+}
+
+/* #dark-mode-toggle {
+  left: 90rem;
+  right: auto;
+} */
+#dark-mode-toggle .cs-moon,
+#dark-mode-toggle .cs-sun {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0; /* Hide both initially */
+}
+
+/* ✅ Show moon in light mode */
+body:not(.dark-mode) .cs-moon {
+  opacity: 1;
+  z-index: 2;
+}
+
+/* ✅ Show sun in dark mode */
+body.dark-mode .cs-sun {
+  opacity: 1;
+  z-index: 2;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode p,
+body.dark-mode label,
+body.dark-mode span,
+body.dark-mode div,
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode button {
+  color: #f0f0f0;
+  background-color: transparent;
+}
+
+/* Forms and containers */
+body.dark-mode .userform-container,
+body.dark-mode .mantine-Card-root,
+body.dark-mode .mantine-Container-root,
+body.dark-mode .mantine-Paper-root {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  border-color: #444 !important;
+}
+
+/* Input fields and textareas */
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+  background-color: #333 !important;
+  color: #fff !important;
+  border: 1px solid #555 !important;
+}
+
+/* Sidebar and nav background */
+body.dark-mode header,
+body.dark-mode nav,
+body.dark-mode .sidebar {
+  background-color: #181818 !important;
+}
+
+/* Optional: override Mantine button styles */
+body.dark-mode button {
+  background-color: #444 !important;
+  color: #fff !important;
+}
+/* Chat Assistant Dark Theme */
+.dark-chat {
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
+}
+
+.dark-chat input,
+.dark-chat textarea,
+.dark-chat button {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+}
+
+.dark-chat .ai-message {
+  background-color: #333 !important;
+  color: #ddd !important;
+}
+
+.dark-chat .user-message {
+  background-color: #0066cc !important;
+  color: white !important;
+}
+/* Optional: Better message visibility */
+.dark-chat .chat-messages {
+  background-color: #111;
+  border: 1px solid #333;
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+}
+/* Chat message bubble styles */
+.chat-message {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+/* AI messages */
+.dark-chat .ai-message {
+  background-color: #2e2e2e !important;
+  color: #eeeeee !important;
+  align-self: flex-start;
+}
+
+/* User messages */
+.dark-chat .user-message {
+  background-color: #007acc !important;
+  color: white !important;
+  align-self: flex-end;
+}
+
+/* Make chat message area flex column */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+}

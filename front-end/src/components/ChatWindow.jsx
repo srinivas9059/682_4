@@ -3,7 +3,7 @@ import "./ChatWindow.css";
 
 function ChatWindow({ surveyData }) {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
@@ -11,7 +11,7 @@ function ChatWindow({ surveyData }) {
 
     const newMessages = [...messages, { from: "user", text: input }];
     setMessages(newMessages);
-    setInput('');
+    setInput("");
     setLoading(true);
 
     // 🧠 Log what is being sent to the backend
@@ -36,22 +36,30 @@ function ChatWindow({ surveyData }) {
         console.error("⚠️ AI error response:", errorMsg);
         setMessages([...newMessages, { from: "ai", text: `⚠️ ${errorMsg}` }]);
       }
-
     } catch (err) {
       console.error("❌ Network error:", err);
-      setMessages([...newMessages, { from: "ai", text: "❌ Network error. Please try again." }]);
+      setMessages([
+        ...newMessages,
+        { from: "ai", text: "❌ Network error. Please try again." },
+      ]);
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="chat-window">
+    <div
+      className={`chat-window ${
+        document.body.classList.contains("dark-mode") ? "dark-chat" : ""
+      }`}
+    >
       <h4>🧠 Ask the AI about this survey</h4>
 
       <div className="chat-messages">
         {messages.map((msg, i) => (
-          <div key={i} className={`msg ${msg.from}`}>{msg.text}</div>
+          <div key={i} className={`msg ${msg.from}`}>
+            {msg.text}
+          </div>
         ))}
         {loading && <div className="msg ai">Thinking...</div>}
       </div>

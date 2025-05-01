@@ -16,13 +16,14 @@ import SessionManager from "./components/SessionManager";
 import UserForm from "./components/UserForm";
 import NAResponses from "./components/NAResponses";
 import ResponseSubmitted from "./components/ResponseSubmitted";
+import DarkModeToggle from "./components/DarkModeToggle";
 
 function App() {
   return (
     <MantineProvider
       theme={{
-        primaryColor: 'blue',
-        defaultRadius: 'md',
+        primaryColor: "blue",
+        defaultRadius: "md",
       }}
       withGlobalStyles
       withNormalizeCSS
@@ -34,7 +35,10 @@ function App() {
         containerWidth={300}
       />
       <AuthProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Router
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <DarkModeToggle /> {/* ✅ Dark mode toggle inserted here */}
           <SessionManager />
           <Routes>
             <Route path="/" element={<Home />} />
