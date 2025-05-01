@@ -793,59 +793,7 @@ if (!refreshedForm) {
     }
   });
 
-  app.post("/createNewFormGroup/:id", async (req, res) => {
-    try {
-      const { groupName, groupID, durationInMinutes } = req.body;
-      const formID = req.params.id;
-  
-      const form = await Form.findOne({ formID });
-      if (!form) {
-        return res.status(404).json({ msg: "Form not found." });
-      }
-  
-      const parentGroupIndex = form.formParentGroups.findIndex(
-        (pg) => pg.groupID === groupID
-      );
-  
-      const newGroupID = randomstring.generate(7);
-      const expiresAt =
-        durationInMinutes && durationInMinutes !== "none"
-          ? new Date(Date.now() + parseInt(durationInMinutes) * 60000)
-          : null;
-  
-      const formGroup = {
-        groupID: newGroupID,
-        groupCode: "3",
-        parentGroupID: groupID,
-        groupName: groupName,
-        groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${newGroupID}`,
-        expiresAt,
-      };
-  
-      form.formGroups.push(formGroup);
-  
-      if (parentGroupIndex !== -1) {
-        form.formParentGroups[parentGroupIndex].childGroups.push(newGroupID);
-      } else {
-        const childParentGroupIndex = form.formGroups.findIndex(
-          (g) => g.groupID === groupID
-        );
-        if (childParentGroupIndex !== -1) {
-          form.formGroups[childParentGroupIndex].childGroups.push(newGroupID);
-        }
-      }
-  
-      await form.save();
-  
-      return res.status(200).json({
-        formGroup: formGroup,
-        msg: "New leaf group created.",
-      });
-    } catch (error) {
-      console.error("❌ Error in /createNewFormGroup POST:", error);
-      res.status(500).json({ msg: "Internal Server Error", errorMsg: error.message });
-    }
-  });
+
   
   
   

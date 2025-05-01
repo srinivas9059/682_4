@@ -178,12 +178,13 @@ function GroupCard({
     console.log("Selected Group after clicking save", selectedGroup);
   
     if (modalAction === "addParent") {
-      handleAddParentFormGroups(groupName);
-    } else if (modalAction === "addChild") {
+      handleAddParentFormGroup(groupName);
+    } else if (modalAction === "addChild" && selectedGroup?.groupID) {
       handleAddChildFormGroups(selectedGroup.groupID, groupName, duration);
-    } else if (modalAction === "addLeaf") {
+    } else if (modalAction === "addLeaf" && selectedGroup?.groupID) {
       handleLocalAddFormGroup(selectedGroup.groupID, groupName, duration);
     }
+    
   
     handleModalClose();
   };
@@ -205,6 +206,12 @@ function GroupCard({
     });
   
     const json = await response.json();
+    if (!response.ok) {
+      console.error("❌ Backend failed:", json.message);
+      alert("Failed to create group. Please check server logs.");
+      return;
+    }
+    
     const newGroup = json.formGroup;
   
     setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
