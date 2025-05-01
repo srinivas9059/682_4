@@ -4,6 +4,8 @@
   import mongoose from "mongoose";
   import Form from "./models/formModel.js";
   import "dotenv/config.js";
+  import axios from "axios";
+
 
   const PORT = process.env.PORT;
   const app = express();
@@ -47,12 +49,13 @@ group.expiresAt = new Date(Date.now() + parseInt(extendByMinutes) * 60000);
 
 await form.save();
 
-    console.log("✅ New Expiry:", group.expiresAt);
+    console.log(" New Expiry:", group.expiresAt);
   
-      return res.status(200).json({
-        msg: `Group expiry extended by ${extendByMinutes} minutes.`,
-        newExpiresAt: group.expiresAt,
-      });
+    return res.status(200).json({
+      message: "Expiry extended successfully!",
+      updatedExpiresAt: group.expiresAt.toISOString(),  // <-- IMPORTANT: toISOString
+    });
+    
     } catch (error) {
       return res.status(500).json({ msg: "Extension failed.", errorMsg: error.message });
     }
@@ -253,7 +256,8 @@ await form.save();
     }
   });
 
-  app.get("/createNewChildFormGroup/:id", async (req, res) => {
+  app.post("/createNewChildFormGroup/:id", async (req, res) => {
+
     console.log("Create New Child Group API");
     try {
       const formCombinedGroupsObj = await Form.findOne(
@@ -264,8 +268,9 @@ await form.save();
       const formGroups = formCombinedGroupsObj.formGroups;
       const formParentGroups = formCombinedGroupsObj.formParentGroups;
       const defaultGroupID = randomstring.generate(7);
-      const groupName = req.query.groupName;
-      const groupID = req.query.groupID;
+      const { groupName, groupID, durationInMinutes } = req.body;
+      const duration = parseInt(durationInMinutes || "60");
+
       console.log("Received Group ID", groupID);
       const parentGroupIndex = formParentGroups.findIndex(
         (pg) => pg.groupID === groupID
@@ -316,7 +321,7 @@ await form.save();
       }
 
       let expiresAt = null;
-      const durationStr = req.query.durationInMinutes;
+      const durationStr = durationInMinutes;
       if (durationStr && durationStr !== "none") {
       const duration = parseInt(durationStr);
       expiresAt = new Date(Date.now() + duration * 60 * 1000);
@@ -357,17 +362,54 @@ await form.save();
     }
   });
 
-  app.get("/createNewFormGroup/:id", async (req, res) => {
+  app.post("/createNewFormGroup/:id", async (req, res) => {
+
     try {
       const formCombinedGroupsObj = await Form.findOne(
         { formID: req.params.id },
         { formGroups: true, formParentGroups: true, _id: false }
       );
+
+      app.put("/updateForm", async (req, res) => {
+        const {
+          formID,
+          formTitle,
+          formDescription,
+          formSections,
+          formGroups,
+          formParentGroups,
+        } = req.body;
+      
+        try {
+          const result = await Form.updateOne(
+            { formID },
+            {
+              $set: {
+                formTitle,
+                formDescription,
+                formSections,
+                formGroups,
+                formParentGroups,
+              },
+            }
+          );
+      
+          if (result.modifiedCount === 1) {
+            res.status(200).json({ msg: "Form updated", result });
+          } else {
+            res.status(400).json({ msg: "No form updated" });
+          }
+        } catch (err) {
+          res.status(500).json({ msg: "Update failed", error: err.message });
+        }
+      });
+      
       const formGroups = formCombinedGroupsObj.formGroups;
       const formParentGroups = formCombinedGroupsObj.formParentGroups;
       const defaultGroupID = randomstring.generate(7);
-      const groupName = req.query.groupName;
-      const groupID = req.query.groupID;
+      const { groupName, groupID, durationInMinutes } = req.body;
+      const durationStr = durationInMinutes;
+
       const parentGroupIndex = formParentGroups.findIndex(
         (pg) => pg.groupID === groupID
       );
@@ -406,12 +448,10 @@ await form.save();
         );
       }
 
-      let expiresAt = null;
-      const durationStr = req.query.durationInMinutes;
-      if (durationStr && durationStr !== "none") {
-      const duration = parseInt(durationStr);
-      expiresAt = new Date(Date.now() + duration * 60 * 1000);
-     }
+      const expiresAt =
+     durationInMinutes && durationInMinutes !== "none"
+    ? new Date(Date.now() + parseInt(durationInMinutes) * 60000)
+    : null;
 
 
       const formGroup = {
@@ -477,64 +517,78 @@ await form.save();
 
   app.get("/getSummaryDashboardData/:id", async (req, res) => {
     try {
-      const refreshedForm = await Form.findOne({ formID: req.params.id });
+      const formID = req.params.id;
+      const groupID = req.query.groupID;
   
-      if (!refreshedForm) {
+      const form = await Form.findOne({ formID: formID });
+      if (!form) {
         return res.status(404).json({ msg: "Form not found." });
       }
   
-      const groupID = req.query.groupID;
-      let refreshedGroup = refreshedForm.formGroups.find(g => g.groupID === groupID);
-
-// Try re-fetching if not found
-if (!refreshedGroup) {
-  const retryForm = await Form.findOne({ formID: req.params.id });
-  refreshedGroup = retryForm.formGroups.find(g => g.groupID === groupID);
-  if (!refreshedGroup) {
-    return res.status(404).json({ msg: "Group not found." });
-  }
-  refreshedForm = retryForm;
+      let group = form.formGroups.find((g) => g.groupID === groupID);
+if (!group) {
+  return res.status(404).json({ msg: "Group not found." });
 }
 
-  
-      if (refreshedGroup.expiresAt && new Date() > new Date(refreshedGroup.expiresAt)) {
-        const retryForm = await Form.findOne({ formID: req.params.id });
-        const retryGroup = retryForm.formGroups.find(g => g.groupID === groupID);
+// 🛡️ 1st Level Check: Was group expired?
+if (group.expiresAt && new Date(group.expiresAt) < new Date()) {
+  console.warn(`⚡ Group "${group.groupName}" looks expired at first check. Revalidating...`);
+
+  // 🔥 Re-fetch fresh group data from DB
+  const refreshedForm = await Form.findOne({ formID: formID });
+  if (!refreshedForm) {
+    return res.status(404).json({ msg: "Form not found (after refresh)." });
+  }
+
+  const refreshedGroup = refreshedForm.formGroups.find(g => g.groupID === groupID);
+  if (!refreshedGroup) {
+    return res.status(404).json({ msg: "Group not found (after refresh)." });
+  }
+
+  if (refreshedGroup.expiresAt && new Date(refreshedGroup.expiresAt) < new Date()) {
+    console.warn(`❌ Even after refresh, group "${refreshedGroup.groupName}" is expired.`);
+    return res.status(410).json({ expiredGroupID: groupID });
+  } else {
+    console.log(`✅ Group expiry was extended. Proceeding with fresh data.`);
+    group = refreshedGroup; // ✅ Use refreshed group object
+  }
+}
+
+      if (group.expiresAt && new Date(group.expiresAt) < new Date()) {
+        const refreshedForm = await Form.findOne({ formID: formID });
+        const refreshedGroup = refreshedForm.formGroups.find((g) => g.groupID === groupID);
       
-        if (retryGroup && (!retryGroup.expiresAt || new Date() <= new Date(retryGroup.expiresAt))) {
-          // ✅ Proceed with refreshed
-          refreshedForm = retryForm;
-          refreshedGroup = retryGroup;
+        if (refreshedGroup && (!refreshedGroup.expiresAt || new Date(refreshedGroup.expiresAt) > new Date())) {
+          console.log("✅ Group expiry was extended. Proceeding...");
         } else {
-          return res.status(200).json({ expiredGroupID: groupID });
+          return res.status(410).json({ expiredGroupID: groupID });
         }
       }
       
-      
   
+      // 🔥 If not expired, proceed normally
       const groupResponses = {};
-  
-      refreshedForm.formGroups.forEach((group) => {
-        if (group.groupCode === "3") {
-          groupResponses[group.groupID] = {
-            groupID: group.groupID,
-            groupName: group.groupName,
+      form.formGroups.forEach((g) => {
+        if (g.groupCode === "3") {
+          groupResponses[g.groupID] = {
+            groupID: g.groupID,
+            groupName: g.groupName,
             sections: {},
           };
         } else {
-          groupResponses[group.groupID] = {
-            groupID: group.groupID,
-            groupName: group.groupName,
-            childGroups: group.childGroups,
+          groupResponses[g.groupID] = {
+            groupID: g.groupID,
+            groupName: g.groupName,
+            childGroups: g.childGroups,
             sections: {},
           };
         }
       });
   
-      refreshedForm.formSections.forEach((section) => {
+      form.formSections.forEach((section) => {
         section.questions.forEach((q) => {
-          refreshedForm.formGroups.forEach((group) => {
-            const groupSection = groupResponses[group.groupID].sections;
+          form.formGroups.forEach((g) => {
+            const groupSection = groupResponses[g.groupID].sections;
             if (!groupSection[section.sectionID]) {
               groupSection[section.sectionID] = {
                 sectionID: section.sectionID,
@@ -565,8 +619,8 @@ if (!refreshedGroup) {
               questionObj.labels = q.labels;
             }
   
-            refreshedForm.formResponses.forEach((r) => {
-              if (r.userGroupID === group.groupID) {
+            form.formResponses.forEach((r) => {
+              if (r.userGroupID === g.groupID) {
                 r.userResponse.forEach((uRes) => {
                   if (uRes.questionID === q.questionID) {
                     questionObj.responses.push(uRes.answer);
@@ -590,21 +644,24 @@ if (!refreshedGroup) {
   
       res.status(200).json({
         form: {
-          formTitle: refreshedForm.formTitle,
-          formDescription: refreshedForm.formDescription,
-          formIsAcceptingResponses: refreshedForm.formIsAcceptingResponses,
-          formSections: refreshedForm.formSections,
+          formTitle: form.formTitle,
+          formDescription: form.formDescription,
+          formIsAcceptingResponses: form.formIsAcceptingResponses,
+          formSections: form.formSections,
         },
         groupResponses: Object.values(groupResponses),
-        numberOfResponses: refreshedForm.formResponses.length,
-        formGroups: refreshedForm.formGroups,
-        formParentGroups: refreshedForm.formParentGroups,
+        numberOfResponses: form.formResponses.length,
+        formGroups: form.formGroups,
+        formParentGroups: form.formParentGroups,
         msg: "Summary Data and number of responses sent.",
       });
+  
     } catch (error) {
-      res.status(500).json({ msg: "Error retrieving form data", errorMsg: error.message });
+      console.error("Error fetching dashboard data:", error);
+      res.status(500).json({ msg: "Error fetching dashboard data", errorMsg: error.message });
     }
   });
+  
   
   app.post("/setIsAcceptingResponses", async (req, res) => {
     try {
@@ -735,6 +792,62 @@ if (!refreshedForm) {
       res.status(500).json({ msg: "Failed to fetch form titles", errorMsg: error.message });
     }
   });
+
+  app.post("/createNewFormGroup/:id", async (req, res) => {
+    try {
+      const { groupName, groupID, durationInMinutes } = req.body;
+      const formID = req.params.id;
+  
+      const form = await Form.findOne({ formID });
+      if (!form) {
+        return res.status(404).json({ msg: "Form not found." });
+      }
+  
+      const parentGroupIndex = form.formParentGroups.findIndex(
+        (pg) => pg.groupID === groupID
+      );
+  
+      const newGroupID = randomstring.generate(7);
+      const expiresAt =
+        durationInMinutes && durationInMinutes !== "none"
+          ? new Date(Date.now() + parseInt(durationInMinutes) * 60000)
+          : null;
+  
+      const formGroup = {
+        groupID: newGroupID,
+        groupCode: "3",
+        parentGroupID: groupID,
+        groupName: groupName,
+        groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${newGroupID}`,
+        expiresAt,
+      };
+  
+      form.formGroups.push(formGroup);
+  
+      if (parentGroupIndex !== -1) {
+        form.formParentGroups[parentGroupIndex].childGroups.push(newGroupID);
+      } else {
+        const childParentGroupIndex = form.formGroups.findIndex(
+          (g) => g.groupID === groupID
+        );
+        if (childParentGroupIndex !== -1) {
+          form.formGroups[childParentGroupIndex].childGroups.push(newGroupID);
+        }
+      }
+  
+      await form.save();
+  
+      return res.status(200).json({
+        formGroup: formGroup,
+        msg: "New leaf group created.",
+      });
+    } catch (error) {
+      console.error("❌ Error in /createNewFormGroup POST:", error);
+      res.status(500).json({ msg: "Internal Server Error", errorMsg: error.message });
+    }
+  });
+  
+  
   
 
   mongoose

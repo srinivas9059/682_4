@@ -89,7 +89,7 @@ function Section({
             section.questions.map((question, index) => (
               <SortableQuestion
                 // key={question.questionID + "-" + index}
-                key={question.questionID}
+                key={`${question.questionID}-${index}`}
                 id={question.questionID}
                 index={index}
                 content={question}

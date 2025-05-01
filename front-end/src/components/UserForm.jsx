@@ -5,6 +5,10 @@ import UserFormSAQ from "./UserFormSAQ";
 import UserFormLSQ from "./UserFormLSQ";
 import { Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { Loader } from "@mantine/core";
+import Confetti from "react-confetti";
+
+
 
 
 function UserForm() {
@@ -19,72 +23,55 @@ function UserForm() {
   });
   const [errorOccurred, setErrorOccurred] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
 
 
   const { formID, groupID } = useParams();
   const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  useEffect(() => {
-    if (formID && groupID) {
-      localStorage.setItem("formID", formID);
-      localStorage.setItem("groupID", groupID);
-    }
+  const checkIfExpired = (groupID) => {
+    const expiredGroupID = localStorage.getItem("expiredGroupID");
+    return expiredGroupID && expiredGroupID === groupID;
+  };
 
+
+  useEffect(() => {
+    const formID = localStorage.getItem("formID");
+    const groupID = localStorage.getItem("groupID");
+  
+    if (!formID || !groupID) {
+      console.error("Form ID or Group ID is missing in localStorage.");
+      navigate("/linkexpired"); // Redirect to the expired link if missing
+      return; // Exit the function if IDs are missing
+    }
+  
+    const expiredGroupID = localStorage.getItem("expiredGroupID");
+    if (expiredGroupID && expiredGroupID === groupID) {
+      console.warn("⚡ Local storage says expired. Redirecting...");
+      navigate("/linkexpired"); // If expired, redirect to the expired link
+      return;
+    }
+  
+    // Continue with the data fetching process
     const fetchData = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/getSummaryDashboardData/${formID}?groupID=${groupID}`);
+        const response = await fetch(
+          `${BACKEND_URL}/getSummaryDashboardData/${formID}?groupID=${groupID}`
+        );
         const json = await response.json();
-    
-        
-    
-        if (!json.form) {
-          if (json.expiredGroupID === groupID) {
-            // Expired — redirect
-            setRedirecting(true);
-            navigate("/linkexpired");
-            return;
-          } else {
-            // Not expired, maybe the form ID is wrong or form was deleted
-            setErrorOccurred(true);
-            return;
-          }
-        }
-        
-        
-        
-        // This ensures form loads even if there are no questions yet
-        if (!json.form.formSections || json.form.formSections.length === 0) {
-          console.warn("Form has no sections or questions.");
-          setFormData(json.form); // allow title & description to show
-          setSections([]);
-          return;
-        }
-        
-        
-        if (json.expiredGroupID) {
-          navigate("/linkexpired");
-          return;
-        }
-        
-        if (!json.form.formIsAcceptingResponses) {
-          navigate(`/notAcceptingFormResponses?title=${json.form.formTitle}`);
-          return;
-        }
-    
-        setFormData(json.form);
-        setSections(json.form.formSections);
+        // Handle the rest of your data and error checking here
       } catch (error) {
         console.error("Error fetching form:", error);
-        setErrorOccurred(true);
-      } finally {
-        setLoading(false);
       }
     };
-    
-
+  
     fetchData();
-  }, [formID, groupID]);
+  }, [formID, groupID]); // Dependencies should be formID and groupID
+  
+  
+  
 
 
   const updateUserResponse = (res) => {
@@ -129,6 +116,14 @@ if (isExpired) {
       message: "Your form has been submitted!",
       autoClose: 3000,
     });
+
+    // 🎉 Trigger Confetti
+    setShowConfetti(true);
+
+    setTimeout(() => {
+      navigate(`/formResponseSubmitted?title=${formData.formTitle}&id=${formID}&groupID=${groupID}`);
+    }, 2000);
+    
     
     navigate(
       `/formResponseSubmitted?title=${formData.formTitle}&id=${formID}&groupID=${groupID}`
@@ -144,7 +139,14 @@ if (isExpired) {
   
   if (redirecting) return null;
 
-  if (loading) return <div>Loading form...</div>;
+  if (loading) return (
+    <div style={{ padding: "3rem", textAlign: "center" }}>
+      <Loader size="lg" color="#edbb5f" />
+      <div style={{ marginTop: "1rem", fontSize: "1rem" }}>Loading form...</div>
+      
+    </div>
+  );
+  
   if (!formData) return <div>No form content found.</div>;
 
   const hasNoQuestions =
@@ -152,6 +154,15 @@ if (isExpired) {
 
   return (
     <div className="user-form-page">
+      {showConfetti && (
+  <Confetti
+    width={window.innerWidth}
+    height={window.innerHeight}
+    recycle={false}
+    numberOfPieces={400}
+  />
+)}
+
       <div className="user-form-title-description">
         <div className="user-form-title-description-inner p-3">
           <div className="user-form-title">{formData.formTitle}</div>

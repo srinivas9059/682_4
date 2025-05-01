@@ -4,13 +4,16 @@ import "primereact/resources/themes/saga-blue/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import { Badge, Button } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { Box } from "@mui/material";
 
 import MCQDashboardListItem from "./MCQDashboardListItem";
 import SAQDashboardListItem from "./SAQDashboardListItem";
 import LSQDashboardListItem from "./LSQDashboardListItem";
 
-function Dashboard({ forceRefresh }) {
+function Dashboard({ forceRefresh, setForceRefresh, formData }) {
+
+
 
   const [groupsData, setGroupsData] = useState([]);
   const [selectedNodes1, setSelectedNodes1] = useState({});
@@ -22,95 +25,179 @@ function Dashboard({ forceRefresh }) {
   const [oldFormGroups, setOldFormGroups] = useState([]);
   const [oldFormParentGroups, setOldFormParentGroups] = useState([]);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const [stopRetries, setStopRetries] = useState(false);
+
+
+
 
   useEffect(() => {
+  let intervalId;
+  let retryTimeout;
 
-    const fetchData = async () => {
-      const groupID = localStorage.getItem("groupID");
-      const formID = localStorage.getItem("formID");
+  const fetchData = async () => {
+    try {
+    const expiresAtString = localStorage.getItem("expiresAt");
+    const formID = localStorage.getItem("formID");
+    const groupID = localStorage.getItem("groupID");
+
+    if (!groupID && (!formData?.form?.formGroups || formData.form.formGroups.length === 0)) {
+      return;
+    }
+    
+    
+  
+    if (!formID || !groupID || !expiresAtString) {
+      // Suppress session expired warning if form is newly created
+      if (!groupID && groupsData.length === 0) {
+        return; // Don't show toast for new forms with no groups yet
+      }
+    
+      notifications.show({
+        title: "Session Expired",
+        message: "Your session has expired. Please select a group again.",
+        color: "red",
+        autoClose: 4000,
+      });
+    
+      localStorage.removeItem("formID");
+      localStorage.removeItem("groupID");
+      localStorage.removeItem("expiresAt");
+    
+      setGroupsData([]);
+      setNumberOfResponses(0);
+      return;
+    }
+    
+    
+  
+    const expiresAt = new Date(expiresAtString);
+    
+
+    const formDataResult = await formRes.json();
+
+const group = formDataResult.form.formGroups.find((g) => g.groupID === groupID);
+
+
+if (!group) {
+  console.warn(`❌ Group "${groupID}" not found. Stopping retries.`);
+  clearTimeout(retryTimeout);
+  retryTimeout = null;
+  clearInterval(intervalId);
+  setGroupsData([]);
+  setNumberOfResponses(0);
+  return;
+}
+
+    const now = new Date();
+    if (expiresAt < now) {
+      notifications.show({
+        title: "Group Expired",
+        message: "Retrying fetch in 10 seconds...",
+        color: "blue",
+        autoClose: 4000,
+      });
       
+      if (!retryTimeout) {
+        retryTimeout = setTimeout(() => {
+          fetchData();
+        }, 10000);
+      }
+      if (stopRetries) {
+        console.log("🚫 Stopping retries because group expired.");
+        return;
+      }
+      
+      setGroupsData([]);
+      setNumberOfResponses(0);
+      return;
+    }
+  
+    if (group.expiresAt && new Date() > new Date(group.expiresAt)) {
+      console.warn(`⚠️ Group "${group.groupName}" expired. Clearing and stopping.`);
+    
+      // Clear expired data from localStorage
+      localStorage.removeItem("expiresAt");
+      localStorage.removeItem("groupID");
+    
+      // Stop retries
+      clearTimeout(retryTimeout);
+      retryTimeout = null;
+      
+      setGroupsData([]);
+      setNumberOfResponses(0);
+    
+      // Optional: show toast to user
+      notifications.show({
+        title: "Session Expired",
+        message: `Group "${group.groupName}" expired. Please select another group.`,
+        color: "red",
+        autoClose: 4000,
+      });
+    
+      return;
+    }
+    
+    if (!formID || !groupID) {
+      console.warn("Form ID or Group ID missing. Skipping dashboard fetch.");
+      return;
+    }
+    
+      const response = await fetch(`${BACKEND_URL}/getSummaryDashboardData/${formID}?groupID=${groupID}`);
+      if (response.status === 410) {
+        console.warn(`⚠️ Group "${groupID}" expired while fetching dashboard. Retrying in 10 seconds...`);
+        clearInterval(intervalId); // 🔥 stop auto fetching
+        if (!retryTimeout) {
+          retryTimeout = setTimeout(() => {
+            fetchData();
+          }, 10000);
+        }
+        return;
+      }
       
   
-      try {
-        const formRes = await fetch(`${BACKEND_URL}/getFormData/${formID}`);
-        if (!formRes.ok) {
-          console.warn("Form fetch failed. Skipping dashboard fetch.");
-          return;
-        }
+      const data = await response.json();
+      if (response.ok) {
+        clearTimeout(retryTimeout);
+        retryTimeout = null;
   
-        const formData = await formRes.json();
-        const group = formData.form.formGroups.find((g) => g.groupID === groupID);
-        
-        console.log("✅ Group check:", group);
-        if (group.expiresAt && new Date() > new Date(group.expiresAt)) {
-          console.warn(`⚠️ Group "${group.groupName}" is STILL expired after retry. Skipping.`);
-          return;
-        }
-        
+        notifications.show({
+          title: "Auto Refreshed!",
+          message: "Dashboard refreshed after extension 🎉",
+          color: "blue",
+          autoClose: 3000,
+        });
   
-        const now = new Date();
-        const groupExpiry = group?.expiresAt ? new Date(group.expiresAt) : null;
+        setGroupsData(data.groupResponses);
+        setNumberOfResponses(data.numberOfResponses);
+        setOriginalFormSections(data.formSections);
   
-        if (!groupExpiry || groupExpiry < now) {
-          console.warn(`⚠️ Group "${group.groupName}" is STILL expired. Checking again...`);
-  
-          const retryRes = await fetch(`${BACKEND_URL}/getFormData/${formID}`);
-          const retryData = await retryRes.json();
-          const refreshedGroup = retryData.form.formGroups.find((g) => g.groupID === groupID);
-  
-          if (!refreshedGroup || new Date(refreshedGroup.expiresAt) < new Date()) {
-            console.warn(`🚫 Group "${group.groupName}" is STILL expired after retry. Skipping.`);
-            return;
-          } else {
-            console.log(`✅ Group "${refreshedGroup.groupName}" was extended. Proceeding.`);
-          }
-        }
-  
-        const response = await fetch(`${BACKEND_URL}/getSummaryDashboardData/${formID}?groupID=${groupID}`);
-        const data = await response.json();
-        if (data.expiredGroupID) {
-          console.warn(`⏳ Group "${data.expiredGroupID}" is expired — awaiting extension`);
-          setGroupsData([]); // clear data
-          setNumberOfResponses(data.numberOfResponses);
-          setOriginalFormSections(data.form.formSections);
+        if (
+          JSON.stringify(oldFormGroups) !== JSON.stringify(data.formGroups) ||
+          JSON.stringify(oldFormParentGroups) !== JSON.stringify(data.formParentGroups)
+        ) {
+          prepareOptions(data.formParentGroups, data.groupResponses);
           setOldFormGroups(data.formGroups);
           setOldFormParentGroups(data.formParentGroups);
-          return; // stop here until group is extended
         }
-        
-        if (data.expiredGroupID) {
-          console.warn(`⚠️ Group "${data.expiredGroupID}" is expired (detected in response). Still showing for extension.`);
-          // You can optionally set a state like: setIsGroupExpired(true); if needed
-        }
-        
-  
-        if (response.ok) {
-          setGroupsData(data.groupResponses);
-          setNumberOfResponses(data.numberOfResponses);
-          setOriginalFormSections(data.formSections);
-  
-          if (
-            JSON.stringify(oldFormGroups) !== JSON.stringify(data.formGroups) ||
-            JSON.stringify(oldFormParentGroups) !== JSON.stringify(data.formParentGroups)
-          ) {
-            prepareOptions(data.formParentGroups, data.groupResponses);
-            setOldFormGroups(data.formGroups);
-            setOldFormParentGroups(data.formParentGroups);
-          }
-        } else {
-          throw new Error("Failed to fetch summary dashboard data");
-        }
-  
-      } catch (error) {
-        console.error("❌ Error fetching dashboard data:", error);
+      } else {
+        throw new Error("Failed to fetch dashboard data.");
       }
-    };
+    } catch (error) {
+      console.error("❌ Error fetching dashboard data:", error);
+    }
+  };
   
-    fetchData();
-    const intervalId = setInterval(fetchData, 2000);
-    return () => clearInterval(intervalId);
+
+  fetchData();
+  intervalId = setInterval(fetchData, 2000);
+
+  return () => {
+    if (intervalId) clearInterval(intervalId);
+    if (retryTimeout) clearTimeout(retryTimeout);
+  };
   
-  }, [forceRefresh]);
+}, [forceRefresh]);
+
   
   /*   const prepareOptions = (parentGroups, childGroups) => {
     const formattedOptions = parentGroups.map((parent) => ({
@@ -376,75 +463,83 @@ function Dashboard({ forceRefresh }) {
       );
     });
 
-  const renderSectionBoxes = (
-    sectionInfo,
-    sectionData1,
-    sectionData2,
-    identifier
-  ) => (
-    <Box
-      key={`${sectionInfo.sectionID}-${identifier}`}
-      className="section-box"
-      sx={{
-        border: "2px solid black",
-        padding: "20px",
-        borderRadius: "12px",
-        marginBottom: "20px",
-        backgroundColor: "#F0F0F0",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
-          borderColor: "#007BFF",
-        },
-      }}
-    >
-      <h3>{sectionInfo.sectionName}</h3>
-      {sectionInfo.questions.map((questionInfo) => {
-        const questionData1 = sectionData1.questions.find(
-          (q) => q.questionID === questionInfo.questionID
-        );
-        const questionData2 = sectionData2.questions.find(
-          (q) => q.questionID === questionInfo.questionID
-        );
-        if (!questionData1) return null;
-        if (!questionData2) return null;
+    const renderSectionBoxes = (
+      sectionInfo,
+      sectionData1,
+      sectionData2,
+      identifier
+    ) => {
+      if (!sectionData1 || !sectionData1.questions || !sectionData2 || !sectionData2.questions) return null;
+    
+      return (
+        <Box
+        key={`sectionbox-${sectionInfo.sectionID}-${identifier}`}
 
-        console.log(" --- Question data2---", questionData2);
-        return renderQuestionItems(questionInfo, questionData1, questionData2);
-      })}
-    </Box>
-  );
+          className="section-box"
+          sx={{
+            border: "2px solid black",
+            padding: "20px",
+            borderRadius: "12px",
+            marginBottom: "20px",
+            backgroundColor: "#F0F0F0",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+              borderColor: "#007BFF",
+            },
+          }}
+        >
+          <h3>{sectionInfo.sectionName}</h3>
+          {sectionInfo.questions.map((questionInfo) => {
+            const questionData1 = sectionData1.questions.find(
+              (q) => q.questionID === questionInfo.questionID
+            );
+            const questionData2 = sectionData2.questions.find(
+              (q) => q.questionID === questionInfo.questionID
+            );
+            if (!questionData1 || !questionData2) return null;
+    
+            return renderQuestionItems(questionInfo, questionData1, questionData2);
+          })}
+        </Box>
+      );
+    };
+    
 
-  // Helper function to render each box section
-  const renderSectionBox = (sectionInfo, sectionData, identifier) => (
-    <Box
-      key={`${sectionInfo.sectionID}-${identifier}`}
-      className="section-box"
-      sx={{
-        border: "2px solid black",
-        padding: "20px",
-        borderRadius: "12px",
-        marginBottom: "20px",
-        backgroundColor: "#F0F0F0",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
-          borderColor: "#007BFF",
-        },
-      }}
-    >
-      <h3>{sectionInfo.sectionName}</h3>
-      {sectionInfo.questions.map((questionInfo) => {
-        const questionData = sectionData.questions.find(
-          (q) => q.questionID === questionInfo.questionID
-        );
-        if (!questionData) return null;
-        return renderQuestionItem(questionInfo, questionData);
-      })}
-    </Box>
-  );
+  const renderSectionBox = (sectionInfo, sectionData, identifier) => {
+    if (!sectionData || !sectionData.questions) return null;  // ✅ Guard clause
+  
+    return (
+      <Box
+        key={`${sectionInfo.sectionID}-${identifier}`}
+        className="section-box"
+        sx={{
+          border: "2px solid black",
+          padding: "20px",
+          borderRadius: "12px",
+          marginBottom: "20px",
+          backgroundColor: "#F0F0F0",
+          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+            borderColor: "#007BFF",
+          },
+        }}
+      >
+        <h3>{sectionInfo.sectionName}</h3>
+        {sectionInfo.questions.map((questionInfo) => {
+          const questionData = sectionData.questions.find(
+            (q) => q.questionID === questionInfo.questionID
+          );
+          if (!questionData) return null;
+          return renderQuestionItem(questionInfo, questionData);
+        })}
+      </Box>
+    );
+  };
+  
 
   // Function to render items based on question types
   const renderQuestionItem = (questionInfo, questionData) => {
@@ -550,9 +645,10 @@ function Dashboard({ forceRefresh }) {
         renderResponseSection(selectedNodes1, selectedNodes2, "2")}
       {Object.keys(selectedNodes1).length === 0 &&
         Object.keys(selectedNodes2).length === 0 && (
-          <p className="dashboard-no-response" text-center mt-3>
-            Please select one or more groups to view the data.
+          <p className="dashboard-no-response text-center mt-3">
+           Please select one or more groups to view the data.
           </p>
+
         )}
     </div>
   );

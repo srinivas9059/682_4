@@ -8,6 +8,8 @@ import ChildGroup from "./ChildGroup";
 import LeafGroup from "./LeafGroup";
 
 
+
+
 function GroupCard({
   formParentGroup,
   content,
@@ -18,7 +20,17 @@ function GroupCard({
   updateFormGroup,
   handleDeleteParentFormGroup,
   handleDeleteFormGroup,
+  handleExtendExpiry,           // NEW
+  extendDurations,              // NEW
+  setExtendDurations,           // NEW
+  getRemainingMinutes,
+  extendingGroupID,
+  refreshDashboardData 
 }) {
+
+  const formID = localStorage.getItem("formID");
+
+ const [groupLink, setGroupLink] = useState("");
   const [formParentGroups, setFormParentGroups] = useState(formParentGroup);
   const [formGroups, setFormGroups] = useState(content);
   const [openModal, setOpenModal] = useState(false);
@@ -26,9 +38,14 @@ function GroupCard({
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [modalAction, setModalAction] = useState(null);
   const [duration, setDuration] = useState(60); // default 60 minutes
+  
   const isGroupExpired = (group) => {
-    return group?.expiresAt && new Date(group.expiresAt) < new Date();
-  };
+  return group?.expiresAt && new Date(group.expiresAt) < new Date();
+    };
+    
+
+    
+  
   
 
   // const [updateTrigger, setUpdateTrigger] = useState(false);
@@ -36,6 +53,8 @@ function GroupCard({
   //const forceUpdate = () => setUpdateTrigger((prev) => !prev);
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  console.log("✅ BACKEND_URL loaded in GroupCard.jsx:", BACKEND_URL);
+
 
   /* useEffect(() => {
     console.log("Component will re-render now");
@@ -74,111 +93,127 @@ function GroupCard({
     updateFormGroup(selectedGroup); */
   };
   const handleNameSave = () => {
+    if (!selectedGroup || !selectedGroup.groupID) {
+      console.warn("❌ selectedGroup is undefined or missing groupID");
+      return;
+    }
+  
     if (selectedGroup.groupID === "open_access") {
       alert("You cannot rename the default group.");
       return;
     }
-
+  
     console.log("Saving changes for group:", selectedGroup.groupID);
-    const updatedGroups = formGroups.map((group) => {
-      if (group.groupID === "open_access") return group; 
-    
+    const updatedGroups = (formGroups || []).map((group) => {
       return group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
         : group;
     });
-    
+  
     setFormGroups(updatedGroups);
     selectedGroup.groupName = groupName;
     updateFormGroup(selectedGroup);
-    // forceUpdate();
   };
-
+  
+  
   const handleParentNameSave = () => {
+    if (!selectedGroup || !selectedGroup.groupID) {
+      console.warn("❌ selectedGroup is undefined or missing groupID");
+      return;
+    }
+  
     if (selectedGroup.groupID === "open_access") {
       alert("You cannot rename the default group.");
       return;
     }
-    
+  
     console.log("Saving changes for group:", selectedGroup.groupID);
-    const updatedGroups = formGroups.map((group) => {
-      if (group.groupID === "open_access") return group; // 🚨 this fixes the crash
-    
+    const updatedGroups = (formParentGroups || []).map((group) => {
       return group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
         : group;
     });
-    
+  
     setFormParentGroups(updatedGroups);
     selectedGroup.groupName = groupName;
     updateFormParentGroup(selectedGroup);
-    //forceUpdate();
   };
-
+  
+  
+  
   const handleModalOpen = (action, groupID = null) => {
     setOpenModal(true);
     setModalAction(action);
     console.log("groupID", groupID);
+  
     if (groupID) {
-      var group = formParentGroups.find((g) => g.groupID === groupID);
-      if (group === undefined) {
-        group = formGroups.find((g) => g.groupID === groupID);
+      let group = formParentGroups.find((g) => g.groupID === groupID) 
+                || formGroups.find((g) => g.groupID === groupID);
+  
+      if (!group) {
+        console.warn(`⚠️ No group found for groupID: ${groupID}`);
+        return; // prevent undefined being set
       }
-      console.log(" Group", group);
+  
+      console.log("✅ Found Group:", group);
       setSelectedGroup(group);
-      console.log("Selected Group", selectedGroup);
     }
   };
+  
 
   const handleModalClose = () => {
     setOpenModal(false);
     setGroupName("");
     setSelectedGroup(null);
     setModalAction(null);
-    setGroupLink("");
     setDuration(60); // reset to default
 
   };
-
   const handleSave = () => {
+    if (!selectedGroup && modalAction !== "addParent") {
+      console.warn("🚫 No group selected — aborting save.");
+      return;
+    }
+  
     console.log("Selected Group after clicking save", selectedGroup);
+  
     if (modalAction === "addParent") {
       handleAddParentFormGroups(groupName);
     } else if (modalAction === "addChild") {
       handleAddChildFormGroups(selectedGroup.groupID, groupName, duration);
     } else if (modalAction === "addLeaf") {
-      handleAddFormGroups(selectedGroup.groupID, groupName, duration);
+      handleLocalAddFormGroup(selectedGroup.groupID, groupName, duration);
     }
+  
     handleModalClose();
   };
   
-
-
-  const handleAddFormGroups = async (groupID, groupName, duration) => {
+  const handleLocalAddFormGroup = async (groupID, groupName, duration) => {
     const id = localStorage.getItem("formID");
-    const url = duration
-  ? `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`
-  : `${BACKEND_URL}/createNewFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`;
+    console.log("Hitting API:", `${BACKEND_URL}/createNewFormGroup/${id}`);
+    const response = await fetch(`${BACKEND_URL}/createNewFormGroup/${id}`, {
 
-const response = await fetch(url, { method: "GET" });
-
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        groupName,
+        groupID,
+        durationInMinutes: duration,
+      }),
+    });
+  
     const json = await response.json();
     const newGroup = json.formGroup;
-
+  
     setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
+    
     const parentGroupIndex = formParentGroups.findIndex(
       (pg) => pg.groupID === groupID
     );
-
+  
     if (parentGroupIndex === -1) {
-      console.log(" Not in Parent Groups");
-
-      const childParentGroupIndex = formGroups.findIndex(
-        (g) => g.groupID === groupID
-      );
-      console.log("childParentGroupIndex", childParentGroupIndex);
-      //formGroups[childParentGroupIndex].childGroups.push(newGroup.groupID);
       setFormGroups((oldFormGroups) => {
         return oldFormGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -195,7 +230,6 @@ const response = await fetch(url, { method: "GET" });
         });
       });
     } else {
-      console.log("In Parent Groups");
       setFormParentGroups((oldFormParentGroups) => {
         return oldFormParentGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -213,33 +247,33 @@ const response = await fetch(url, { method: "GET" });
       });
     }
   };
+  
 
   const handleAddChildFormGroups = async (groupID, groupName, duration) => {
     const id = localStorage.getItem("formID");
-
-    const url = duration
-  ? `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}&durationInMinutes=${duration}`
-  : `${BACKEND_URL}/createNewChildFormGroup/${id}?groupName=${groupName}&groupID=${groupID}`;
-
-  const response = await fetch(url, { method: "GET" });
-
+  
+    const response = await fetch(`${BACKEND_URL}/createNewChildFormGroup/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        groupName,
+        groupID,
+        durationInMinutes: duration,
+      }),
+    });
+  
     const json = await response.json();
     const newGroup = json.formGroup;
-
+  
     setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
-
+  
     const parentGroupIndex = formParentGroups.findIndex(
       (pg) => pg.groupID === groupID
     );
-
+  
     if (parentGroupIndex === -1) {
-      console.log(" Not in Parent Groups");
-
-      const childParentGroupIndex = formGroups.findIndex(
-        (g) => g.groupID === groupID
-      );
-      console.log("childParentGroupIndex", childParentGroupIndex);
-      //formGroups[childParentGroupIndex].childGroups.push(newGroup.groupID);
       setFormGroups((oldFormGroups) => {
         return oldFormGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -256,7 +290,6 @@ const response = await fetch(url, { method: "GET" });
         });
       });
     } else {
-      console.log("In Parent Groups");
       setFormParentGroups((oldFormParentGroups) => {
         return oldFormParentGroups.map((parentGroup) => {
           if (parentGroup.groupID === groupID) {
@@ -274,22 +307,30 @@ const response = await fetch(url, { method: "GET" });
       });
     }
   };
-
+  
   const handleAddParentFormGroups = async (parentGroupName) => {
     console.log(parentGroupName, "to be added");
     const id = localStorage.getItem("formID");
-    const response = await fetch(
-      `${BACKEND_URL}/createNewParentFormGroup/${id}?parentGroupName=${parentGroupName}`,
-      { method: "GET" }
-    );
+  
+    const response = await fetch(`${BACKEND_URL}/createNewParentFormGroup/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        parentGroupName,
+      }),
+    });
+  
     const json = await response.json();
     const newParentGroup = json.formParentGroup;
-
+  
     setFormParentGroups((oldFormParentGroups) => [
       ...oldFormParentGroups,
       newParentGroup,
     ]);
   };
+  
 
   const handleSelectGroup = (group) => {
     setSelectedGroup(group);
@@ -309,8 +350,10 @@ const response = await fetch(url, { method: "GET" });
   
     return (
       <TreeItem
-        key={parentGroup.groupID}
-        itemId={parentGroup.groupID}
+  key={`treeitem-${parentGroup.groupID}-${Math.random()}`} // avoids duplicate keys
+  itemId={parentGroup.groupID}
+
+
         label={
           <div>
             <span
@@ -409,6 +452,7 @@ const response = await fetch(url, { method: "GET" });
                   />
                 ) : (
                   <LeafGroup
+                    formID={formID}
                     groupName={groupName}
                     setGroupName={setGroupName}
                     handleNameSave={handleNameSave}
@@ -416,6 +460,12 @@ const response = await fetch(url, { method: "GET" });
                     handleDeleteFormGroup={handleDeleteFormGroup}
                     selectedGroup={selectedGroup}
                     handleGroupNameChange={handleGroupNameChange}
+                    handleExtendExpiry={handleExtendExpiry} // new
+                    extendDurations={extendDurations}       // new
+                    setExtendDurations={setExtendDurations} // new
+                    getRemainingMinutes={getRemainingMinutes} // new
+                    extendingGroupID={extendingGroupID} 
+                    refreshDashboardData={refreshDashboardData}
                   />
                 ))}
             </Box>

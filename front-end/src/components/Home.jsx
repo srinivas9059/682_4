@@ -7,6 +7,8 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import AccountMenu from "./AccountMenu";
 import TextSnippetRoundedIcon from "@mui/icons-material/TextSnippetRounded";
+import { notifications } from "@mantine/notifications";
+
 
 function Home() {
   const [allFormTitlesIDs, setAllFormTitlesIDs] = useState([]);
@@ -14,6 +16,8 @@ function Home() {
   const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const { currentUser, logout } = useAuth();
+  const [forceRefresh, setForceRefresh] = useState(0);
+
 
   useEffect(() => {
     if (!currentUser) {
@@ -27,7 +31,7 @@ function Home() {
       try {
         const response = await fetch(`${BACKEND_URL}/getAllFormTitles`);
         const json = await response.json();
-        setAllFormTitlesIDs(json); // No `.allFormTitlesIDs` anymore
+        setAllFormTitlesIDs(json);
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching form titles:", error);
@@ -36,7 +40,20 @@ function Home() {
     };
   
     fetchData();
+  }, [forceRefresh]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      setForceRefresh(prev => prev + 1); // 🔥 Refresh All Forms on tab focus
+    };
+  
+    window.addEventListener('focus', handleFocus);
+  
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
+  
   
 
   const handleCreateNewForm = async () => {
@@ -49,10 +66,37 @@ function Home() {
     const json = await response.json();
     if (response.ok) {
       localStorage.setItem("formID", json.form.formID);
+      localStorage.setItem("lastVisitedFormID", json.form.formID);
       navigate(`/form/${json.form.formID}`);
-    } else console.log(json);
-  };
+      localStorage.removeItem("groupID");
+      localStorage.removeItem("expiresAt");
+      localStorage.removeItem("lastVisitedFormID");
+      localStorage.removeItem("lastVisitedGroupID");
 
+      setForceRefresh(prev => prev + 1); //  Refresh All Forms
+       // 🛎️ Show a toast to user
+    notifications.show({
+      title: "Form Created",
+      message: "A new form has been created successfully!",
+      color: "green",
+      autoClose: 3000,
+    });
+
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      navigate(`/form/${json.form.formID}`);
+    }, 1000);  // slight delay to feel smooth
+  } else {
+    console.log(json);
+    notifications.show({
+      title: "Error",
+      message: "Failed to create form. Try again.",
+      color: "red",
+      autoClose: 3000,
+    });
+  }
+};
+  
   const handleDeleteFormListItem = async (id) => {
     localStorage.removeItem("formID");
     const response = await fetch(`${BACKEND_URL}/deleteForm/${id}`, {
@@ -73,13 +117,24 @@ function Home() {
     });
     const json = await response.json();
     if (response.ok) {
-      setAllFormTitlesIDs((titles) => {
-        const newTitles = [...titles, json.form];
-        return newTitles;
+      setForceRefresh(prev => prev + 1);
+      notifications.show({
+        title: "Form Duplicated",
+        message: "The form has been duplicated successfully!",
+        color: "blue",
+        autoClose: 3000,
       });
-    } else console.log(json.msg);
+    } else {
+      console.log(json.msg);
+      notifications.show({
+        title: "Error",
+        message: "Failed to duplicate form.",
+        color: "red",
+        autoClose: 3000,
+      });
+    }
   };
-
+  
   const handleLogOut = async () => {
     try {
       await logout();

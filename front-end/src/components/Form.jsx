@@ -24,9 +24,13 @@ function Form() {
 
   const [formData, setFormData] = useState({ formSections: [] });
   const [loading, setLoading] = useState(true);
+  
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [formID, setFormID] = useState(() => {
+    return localStorage.getItem("formID") || null;
+  });
 
   useEffect(() => {
     if (!currentUser) {
@@ -34,23 +38,24 @@ function Form() {
       return;
     }
   
-    let formID = localStorage.getItem("formID");
-if (!formID) {
-  // fallback if user came from expired page
-  formID = localStorage.getItem("lastVisitedFormID");
-  localStorage.setItem("formID", formID); // restore so it behaves normally again
-}
-
-    localStorage.setItem("lastVisitedFormID", formID);
-
-    if (!formID) {
-      console.warn("formID is missing — cannot fetch form data.");
-      return;
+    let storedFormID = localStorage.getItem("formID");
+  
+    if (!storedFormID) {
+      storedFormID = localStorage.getItem("lastVisitedFormID");
+      if (storedFormID) {
+        localStorage.setItem("formID", storedFormID);
+      } else {
+        console.warn("❌ No formID found in localStorage");
+        return;
+      }
     }
   
-    fetchFormData(formID);
+    setFormID(storedFormID);
+    localStorage.setItem("lastVisitedFormID", storedFormID);
+    fetchFormData(storedFormID);  // ✅ call if valid
   }, [currentUser, navigate]);
   
+    
 
   useEffect(() => {
     console.log("Form Data updated:", formData);
@@ -88,7 +93,10 @@ if (!formID) {
 
   const refreshDashboardData = () => {
     const formID = localStorage.getItem("formID");
-    fetchFormData(formID);
+    if (formID) {
+      fetchFormData(formID); // ✅ only if formID is valid
+    }
+    
     setForceRefresh((prev) => prev + 1); // this triggers dashboard to react
   };
   
@@ -563,36 +571,62 @@ if (!formID) {
 
   const handleSave = async () => {
     const id = localStorage.getItem("formID");
-    console.log("Form Data to be saved", formData);
-    const bodyjson = JSON.stringify({
+  
+    if (!id) {
+      alert("Form ID missing. Cannot save.");
+      return;
+    }
+  
+    const formPayload = {
       formID: id,
       formTitle: formTitle,
       formDescription: formDescription,
       formSections: formData.formSections,
       formGroups: formGroups,
       formParentGroups: formParentGroups,
-    });
-    console.log("Form Data to be saved", bodyjson);
-
-    const response = await fetch(`${BACKEND_URL}/updateForm`, {
-      method: "PUT",
-      body: JSON.stringify({
-        formID: id,
-        formTitle: formTitle,
-        formDescription: formDescription,
-        formSections: formData.formSections,
-        formGroups: formGroups,
-        formParentGroups: formParentGroups,
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
-    const json = await response.json();
-    notifications.show({
-      color: "#edbb5f",
-      message: "Form Saved",
-      autoClose: 2500,
-    });
+    };
+  
+    console.log("🟢 Saving form with data:", formPayload);
+  
+    try {
+      const response = await fetch(`${BACKEND_URL}/updateForm`, {
+        method: "PUT",
+        body: JSON.stringify(formPayload),
+        headers: { "Content-Type": "application/json" },
+      });
+  
+      const json = await response.json();
+  
+      if (response.ok) {
+        notifications.show({
+          title: "Form Saved",
+          message: "Your form has been saved successfully!",
+          color: "green",
+          autoClose: 2500,
+        });
+      } else {
+        notifications.show({
+          title: "Save Failed",
+          message: json.msg || "Something went wrong.",
+          color: "red",
+          autoClose: 3000,
+        });
+      }
+    } catch (err) {
+      console.error("❌ Error during save:", err);
+      notifications.show({
+        title: "Save Error",
+        message: "Failed to reach the server.",
+        color: "red",
+        autoClose: 3000,
+      });
+    }
   };
+  
+  
+
+    
+  
 
   return (
     <div className="form-main-page">
@@ -713,6 +747,7 @@ if (!formID) {
                   variant="filled"
                   className="text-black wide-button"
                   onClick={handleSave}
+                  disabled={!formTitle.trim() || formGroups.length === 0}
                 >
                   Save
                 </Button>
@@ -741,7 +776,13 @@ if (!formID) {
             aria-labelledby="dasboard-tab"
             tabIndex="0"
           >
-            <Dashboard forceRefresh={refreshCounter} />
+            <Dashboard
+  forceRefresh={refreshCounter}
+  setForceRefresh={setRefreshCounter}
+  formData={formData}
+/>
+
+
 
           </div>
           <div
