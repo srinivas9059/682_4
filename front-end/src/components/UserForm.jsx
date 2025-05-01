@@ -4,7 +4,7 @@ import UserFormMCQ from "./UserFormMCQ";
 import UserFormSAQ from "./UserFormSAQ";
 import UserFormLSQ from "./UserFormLSQ";
 import { Button } from "@mantine/core";
-import "./UserForm.css";
+import "./Userform.css";
 
 function UserForm() {
   const [formData, setFormData] = useState({});
@@ -182,8 +182,8 @@ function UserForm() {
 
         <div className="user-form-footer">
           <div className="user-form-footer-text">
-            This content is neither created nor endorsed by Cluster Forms. Report
-            Abuse - Terms of Service - Privacy Policy
+            This content is neither created nor endorsed by Cluster Forms.
+            Report Abuse - Terms of Service - Privacy Policy
           </div>
           <div className="user-form-footer-text">
             <b>Cluster Forms</b>

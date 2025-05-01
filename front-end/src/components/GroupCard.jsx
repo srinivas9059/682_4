@@ -119,6 +119,10 @@ function GroupCard({
   // Manually triggered Save
   const handleThemeSave = async () => {
     if (!selectedGroup) return;
+
+    // 🛡️ Cancel any pending debounce
+    debouncedThemeUpdate.cancel();
+
     const formID = localStorage.getItem("formID");
     if (!formID) {
       console.error("Form ID is missing. Cannot save theme.");
@@ -137,7 +141,7 @@ function GroupCard({
       );
       const json = await res.json();
       if (res.ok) {
-        console.log("Theme saved:", json);
+        console.log("Theme saved manually:", json);
       } else {
         console.error("Failed to save theme:", json.error);
       }
@@ -177,6 +181,7 @@ function GroupCard({
   const handleDeleteFont = async (name) => {
     setFontOptions((prev) => prev.filter((f) => f !== name));
   };
+  console.log("🧩 Rendering Tree: formParentGroups", formParentGroups);
 
   // Called on color/font/bg changes
   const handleThemeChange = (groupID, field, value) => {
@@ -235,7 +240,7 @@ function GroupCard({
 
   const handleNameSave = () => {
     if (!selectedGroup) return;
-    const updatedGroups = formGroups.map((group) =>
+    const updatedGroups = formParentGroups.map((group) =>
       group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
         : group
@@ -247,7 +252,7 @@ function GroupCard({
 
   const handleParentNameSave = () => {
     if (!selectedGroup) return;
-    const updatedGroups = formGroups.map((group) =>
+    const updatedGroups = formParentGroups.map((group) =>
       group.groupID === selectedGroup.groupID
         ? { ...group, groupName: groupName }
         : group
@@ -282,6 +287,10 @@ function GroupCard({
       { method: "GET" }
     );
     const json = await response.json();
+    if (!json.formGroup || !json.formGroup.groupID) {
+      console.error("❌ Invalid response from server:", json);
+      return;
+    }
     const newGroup = json.formGroup;
 
     setFormGroups((oldFormGroups) => [...oldFormGroups, newGroup]);
@@ -303,10 +312,9 @@ function GroupCard({
           if (parentGroup.groupID === groupID) {
             const updatedParentGroup = {
               ...parentGroup,
-              childGroups: [
-                ...(parentGroup.childGroups || []),
-                newGroup.groupID,
-              ],
+              childGroups: parentGroup.childGroups?.includes(newGroup.groupID)
+                ? [...parentGroup.childGroups]
+                : [...(parentGroup.childGroups || []), newGroup.groupID],
             };
             return updatedParentGroup;
           }
@@ -320,10 +328,9 @@ function GroupCard({
           if (parentGroup.groupID === groupID) {
             const updatedParentGroup = {
               ...parentGroup,
-              childGroups: [
-                ...(parentGroup.childGroups || []),
-                newGroup.groupID,
-              ],
+              childGroups: parentGroup.childGroups?.includes(newGroup.groupID)
+                ? [...parentGroup.childGroups]
+                : [...(parentGroup.childGroups || []), newGroup.groupID],
             };
             return updatedParentGroup;
           }
@@ -361,10 +368,9 @@ function GroupCard({
           if (parentGroup.groupID === groupID) {
             const updatedParentGroup = {
               ...parentGroup,
-              childGroups: [
-                ...(parentGroup.childGroups || []),
-                newGroup.groupID,
-              ],
+              childGroups: parentGroup.childGroups?.includes(newGroup.groupID)
+                ? [...parentGroup.childGroups]
+                : [...(parentGroup.childGroups || []), newGroup.groupID],
             };
             return updatedParentGroup;
           }
@@ -378,10 +384,9 @@ function GroupCard({
           if (parentGroup.groupID === groupID) {
             const updatedParentGroup = {
               ...parentGroup,
-              childGroups: [
-                ...(parentGroup.childGroups || []),
-                newGroup.groupID,
-              ],
+              childGroups: parentGroup.childGroups?.includes(newGroup.groupID)
+                ? [...parentGroup.childGroups]
+                : [...(parentGroup.childGroups || []), newGroup.groupID],
             };
             return updatedParentGroup;
           }
@@ -420,14 +425,18 @@ function GroupCard({
   };
 
   const handleSelectGroup = (group) => {
-    console.log("🧪 Selected group:", group); // 👈 ADD THIS
+    const fullGroup =
+      formGroups.find((g) => g.groupID === group.groupID) ||
+      formParentGroups.find((pg) => pg.groupID === group.groupID);
+
+    console.log("🧪 Selected group:", fullGroup);
+
     if (
-      group.groupCode === "1" ||
-      group.groupCode === "2" ||
-      group.groupCode === "3"
+      fullGroup &&
+      ["1", "2", "3"].includes(String(fullGroup.groupCode)) // 🛠️ Fixed here: force string comparison
     ) {
-      setSelectedGroup(group);
-      setGroupName(group.groupName);
+      setSelectedGroup(fullGroup);
+      setGroupName(fullGroup.groupName);
     } else {
       setSelectedGroup(null);
     }
@@ -435,14 +444,14 @@ function GroupCard({
 
   // Tree view recursion
   const renderTreeItems = (parentGroup) => {
-    if (!parentGroup) return null;
+    if (!parentGroup || !parentGroup.groupID) return null; // 💥 prevents the crash
 
     return (
       <TreeItem
         key={parentGroup.groupID}
         itemId={parentGroup.groupID}
         label={parentGroup.groupName}
-        onClick={() => handleSelectGroup(parentGroup)}
+        onClick={() => handleSelectGroup({ groupID: parentGroup.groupID })}
       >
         {console.log(
           parentGroup.groupID,
@@ -488,7 +497,7 @@ function GroupCard({
               }}
             >
               <SimpleTreeView>
-                {formParentGroups.map(renderTreeItems)}
+                {(formParentGroups || []).filter(Boolean).map(renderTreeItems)}
               </SimpleTreeView>
             </div>
 

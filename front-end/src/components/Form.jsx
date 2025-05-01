@@ -8,7 +8,7 @@ import TextSnippetRoundedIcon from "@mui/icons-material/TextSnippetRounded";
 import { Button, Group } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-
+import { v4 as uuidv4 } from "uuid";
 import Section from "./Section";
 
 import { arrayMove } from "@dnd-kit/sortable";
@@ -20,9 +20,9 @@ function Form() {
   const [formGroups, setFormGroups] = useState([]);
   const [formParentGroups, setFormParentGroups] = useState([]);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-  const generateUniqueQuestionID = () =>
-    Date.now() + Math.floor(Math.random() * 1000);
-
+  const generateUniqueQuestionID = () => {
+    return uuidv4(); // This guarantees a globally unique ID
+  };
   const [formData, setFormData] = useState({ formSections: [] });
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
@@ -48,11 +48,20 @@ function Form() {
 
       if (response.ok) {
         const data = await response.json();
+
+        // ✅ Reset first
+        setFormData({ formSections: [] });
+        setFormGroups([]);
+        setFormParentGroups([]);
+        setQuestions([]); // if you use questions separately
+
+        // ✅ Now set new data
         setFormData(data.form);
-        setFormTitle(data.form.formTitle);
-        setFormDescription(data.form.formDescription);
-        setFormGroups(data.form.formGroups);
-        setFormParentGroups(data.form.formParentGroups);
+        setFormTitle(data.form.formTitle || "");
+        setFormDescription(data.form.formDescription || "");
+        setFormGroups(data.form.formGroups || []);
+        setFormParentGroups(data.form.formParentGroups || []);
+
         console.log("Form Data fetched:", data.form);
       } else {
         console.error("Failed to load form data.");
@@ -324,7 +333,6 @@ function Form() {
     try {
       const id = localStorage.getItem("formID");
 
-      // Create a minimal payload
       const updatePayload = {
         formID: id,
         formTitle: formTitle,
@@ -349,8 +357,6 @@ function Form() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          // Add CORS headers
-          Accept: "application/json",
         },
         body: JSON.stringify(updatePayload),
       });
@@ -367,6 +373,9 @@ function Form() {
         message: "Form Saved",
         autoClose: 2500,
       });
+
+      // 🛠 ADD THIS 🛠
+      await fetchFormData(); // Reload latest fresh form data after saving
     } catch (error) {
       console.error("Error saving form:", error);
       notifications.clean();

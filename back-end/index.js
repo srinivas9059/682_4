@@ -13,7 +13,13 @@ const app = express();
 const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL;
 
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // ⚠️ This allows all origins - use only for testing
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: false,
+  })
+);
 
 // MongoDB Connection
 mongoose
@@ -183,6 +189,8 @@ app.get("/createNewForm", async (req, res) => {
   const formID = randomstring.generate(7);
   // If the front end provided ?formTitle=someValue, use it. Else "Untitled Form".
   let formTitle = req.query.formTitle || "Untitled Form";
+  const groupName = req.query.groupName || "Group 1"; // fallback if not provided
+
   const formDescription = "";
   const formSections = []; // Initialize sections
   const formResponses = [];
@@ -193,10 +201,11 @@ app.get("/createNewForm", async (req, res) => {
   const formGroups = [
     {
       groupID: defaultGroupID,
-      groupCode: "3", // ✅ must add
+      groupCode: "3",
       parentGroupID: defaultParentGroupID,
-      groupName: "Group 1",
-      groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${defaultGroupID}`,
+      groupName: groupName,
+      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
+      childGroups: [], // ✅ always include this!
     },
   ];
 
@@ -341,53 +350,27 @@ app.get("/getFormData/:id", async (req, res) => {
 });
 
 app.put("/updateForm", async (req, res) => {
-  console.log("UPDATE FORM STARTED");
-  console.log("PUT request received");
-  console.log("Form Sections Received:", req.body.formSections);
-
   try {
-    const form = await Form.findOne({ formID: req.body.formID });
-    if (!form) {
-      return res.status(404).json({ msg: "Form not found." });
-    }
-
-    console.log("Before Update:", JSON.stringify(form.formSections, null, 2));
-
-    // Update sections and questions
-    req.body.formSections.forEach((incomingSection, idx) => {
-      let sectionIndex = form.formSections.findIndex(
-        (s) => s.sectionID === incomingSection.sectionID
-      );
-
-      if (sectionIndex !== -1) {
-        // Update existing section and questions
-        form.formSections[sectionIndex] = incomingSection;
-        form.markModified(`formSections.${sectionIndex}`);
-      } else {
-        // Add new section
-        form.formSections.push(incomingSection);
-        form.markModified("formSections");
+    const result = await Form.updateOne(
+      { formID: req.body.formID },
+      {
+        $set: {
+          formTitle: req.body.formTitle,
+          formDescription: req.body.formDescription,
+          formSections: req.body.formSections,
+          formGroups: req.body.formGroups,
+          formParentGroups: req.body.formParentGroups,
+        },
       }
-    });
+    );
 
-    // Update other form properties
-    form.formTitle = req.body.formTitle;
-    form.formDescription = req.body.formDescription;
-    form.formGroups = req.body.formGroups;
-    form.formParentGroups = req.body.formParentGroups;
-
-    // Save the entire document
-    await form.save();
-
-    console.log("After Update:", JSON.stringify(form.formSections, null, 2));
-    console.log("UPDATE FORM ENDED");
-
-    res.status(200).json({
-      msg: "Form updated successfully.",
-      updatedCount: form.formSections.length,
-    });
+    if (result.modifiedCount === 1) {
+      res.status(200).json({ msg: "Form updated successfully." });
+    } else {
+      res.status(404).json({ msg: "Form not found or already up to date." });
+    }
   } catch (error) {
-    console.error("Error during form update:", error);
+    console.error("Error updating form:", error);
     res
       .status(500)
       .json({ msg: "Error updating form", errorMsg: error.message });
@@ -494,7 +477,8 @@ app.get("/createNewChildFormGroup/:id", async (req, res) => {
     const formGroup = {
       groupID: defaultGroupID,
       groupCode: "2",
-      parentGroupID: groupID,
+      parentGroupID: defaultParentGroupID,
+
       groupName: groupName,
       groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
       childGroups: [],
@@ -523,79 +507,47 @@ app.get("/createNewChildFormGroup/:id", async (req, res) => {
 
 app.get("/createNewFormGroup/:id", async (req, res) => {
   try {
-    const formCombinedGroupsObj = await Form.findOne(
-      { formID: req.params.id },
-      { formGroups: true, formParentGroups: true, _id: false }
-    );
-    const formGroups = formCombinedGroupsObj.formGroups;
-    const formParentGroups = formCombinedGroupsObj.formParentGroups;
-    const defaultGroupID = randomstring.generate(7);
+    const form = await Form.findOne({ formID: req.params.id });
+    if (!form) return res.status(404).json({ error: "Form not found" });
+
     const groupName = req.query.groupName;
-    const groupID = req.query.groupID;
-    const parentGroupIndex = formParentGroups.findIndex(
-      (pg) => pg.groupID === groupID
+    const parentGroupID = req.query.groupID;
+
+    const newGroupID = randomstring.generate(7);
+
+    const newGroup = {
+      groupID: newGroupID,
+      groupCode: "3", // leaf
+      groupName,
+      parentGroupID,
+      groupLink: `${process.env.CLIENT_BASE_URL}/#/userform/${form.formID}/${newGroupID}`,
+      childGroups: [],
+    };
+
+    const parentInPG = form.formParentGroups.find(
+      (pg) => pg.groupID === parentGroupID
     );
-    if (parentGroupIndex === -1) {
-      const childParentGroupIndex = formGroups.findIndex(
-        (g) => g.groupID === groupID
-      );
-      console.log(
-        " Form child Groups before adding ",
-        formGroups[childParentGroupIndex].childGroups
-      );
-      formGroups[childParentGroupIndex].childGroups.push(defaultGroupID);
-      console.log(
-        "New Child Group Added in form groups at the ",
-        childParentGroupIndex,
-        "position in formGroups"
-      );
-      console.log(
-        " Form child Groups after adding",
-        formGroups[childParentGroupIndex].childGroups
-      );
+    const parentInFG = form.formGroups.find(
+      (fg) => fg.groupID === parentGroupID
+    );
+
+    if (parentInPG) {
+      parentInPG.childGroups.push(newGroupID);
+    } else if (parentInFG) {
+      parentInFG.childGroups.push(newGroupID);
     } else {
-      console.log(
-        " Form Parent Groups child Groups before adding",
-        formParentGroups[parentGroupIndex].childGroups
-      );
-      formParentGroups[parentGroupIndex].childGroups.push(defaultGroupID);
-      console.log(
-        "New Child Group Added in form parent groups at the ",
-        parentGroupIndex,
-        "position in formGroups"
-      );
-      console.log(
-        " Form Parent Groups child Groups after adding",
-        formParentGroups[parentGroupIndex].childGroups
-      );
+      return res.status(400).json({ error: "Invalid groupID" });
     }
-    const formGroup = {
-      groupID: defaultGroupID,
-      groupCode: "3",
-      parentGroupID: groupID,
-      groupName: groupName,
-      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
-    };
-    formGroups.push(formGroup);
-    const updatedForm = {
-      $set: {
-        formGroups: formGroups,
-        formParentGroups: formParentGroups,
-      },
-    };
-    console.log("Updated Form groups", formGroups);
-    const result = await Form.updateOne({ formID: req.params.id }, updatedForm);
-    if (result.modifiedCount === 1)
-      res.status(200).json({
-        formGroup: formGroup,
-        formParentGroups: formParentGroups,
-        msg: "New form group created.",
-      });
-    else res.status(404).json({ msg: "Form not found." });
-  } catch (error) {
+
+    form.formGroups.push(newGroup);
+    await form.save();
+
+    res.status(200).json({ msg: "Group created", formGroup: newGroup });
+  } catch (err) {
+    console.error(err);
     res
       .status(500)
-      .json({ msg: "See error message !", errorMsg: error.message });
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
@@ -795,19 +747,35 @@ app.get("/duplicateForm/:id", async (req, res) => {
 
     const newFormID = randomstring.generate(7);
     const defaultGroupID = randomstring.generate(7);
+    const defaultParentGroupID = randomstring.generate(7);
+
     const formGroups = [
       {
         groupID: defaultGroupID,
+        groupCode: "3",
+        parentGroupID: defaultParentGroupID,
         groupName: "Group 1",
         groupLink: `${CLIENT_BASE_URL}/#/userform/${newFormID}/${defaultGroupID}`,
+        childGroups: [],
+        theme: {
+          primaryColor: "#ffffff",
+          fontFamily: "Arial",
+          backgroundImage: "",
+        },
       },
     ];
-    const defaultParentGroupID = randomstring.generate(7);
+
     const formParentGroups = [
       {
         groupID: defaultParentGroupID,
+        groupCode: "1",
         groupName: "Parent Group 1",
         childGroups: [defaultGroupID],
+        theme: {
+          primaryColor: "#ffffff",
+          fontFamily: "Arial",
+          backgroundImage: "",
+        },
       },
     ];
 
@@ -815,14 +783,14 @@ app.get("/duplicateForm/:id", async (req, res) => {
       userID: form.userID,
       formID: newFormID,
       formTitle: `Copy of ${form.formTitle}`,
-
       formDescription: form.formDescription,
-      formSections: JSON.parse(JSON.stringify(form.formSections)), // Duplicate sections
+      formSections: JSON.parse(JSON.stringify(form.formSections)),
       formResponses: [],
-      formGroups: formGroups,
-      formParentGroups: formParentGroups,
+      formGroups,
+      formParentGroups,
       formIsAcceptingResponses: form.formIsAcceptingResponses,
     });
+
     res.status(200).json({ msg: "Form Duplicated.", form: duplicateForm });
   } catch (error) {
     res

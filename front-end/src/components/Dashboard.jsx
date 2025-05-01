@@ -212,19 +212,26 @@ function Dashboard() {
     return selectedGroupNames;
   };
 
-  const renderQuestionItems = (qInfo, qData1, qData2) => {
-    const selectedGroupNames1 = determineGroupNames(selectedNodes1);
-    const selectedGroupNames2 = determineGroupNames(selectedNodes2);
+  const renderQuestionItems = (
+    qInfo,
+    qData1,
+    qData2,
+    selectedGroupNames1,
+    selectedGroupNames2
+  ) => {
     const props = {
-      key: qInfo.questionID,
       content: qData1,
       content2: qData2,
       selectedGroupNames1,
       selectedGroupNames2,
     };
-    if (qInfo.questionType === 1) return <MCQDashboardListItem {...props} />;
-    if (qInfo.questionType === 2) return <SAQDashboardListItem {...props} />;
-    if (qInfo.questionType === 3) return <LSQDashboardListItem {...props} />;
+
+    if (qInfo.questionType === 1)
+      return <MCQDashboardListItem key={qInfo.questionID} {...props} />;
+    if (qInfo.questionType === 2)
+      return <SAQDashboardListItem key={qInfo.questionID} {...props} />;
+    if (qInfo.questionType === 3)
+      return <LSQDashboardListItem key={qInfo.questionID} {...props} />;
     return null;
   };
 
@@ -288,9 +295,11 @@ function Dashboard() {
                     : [],
               });
             }
-            sectionMap[section.sectionID].questions[index].responses.push(
-              ...q.responses
-            );
+            if (index !== -1) {
+              sectionMap[section.sectionID].questions[index].responses.push(
+                ...q.responses
+              );
+            }
           });
         });
       });
@@ -302,7 +311,13 @@ function Dashboard() {
     return sectionMap;
   };
 
-  const renderSectionBox = (secInfo, secData, identifier) => (
+  const renderSectionBox = (
+    secInfo,
+    secData,
+    identifier,
+    selectedGroupNames1,
+    selectedGroupNames2
+  ) => (
     <Box
       key={`${secInfo.sectionID}-${identifier}`}
       className="section-box"
@@ -325,12 +340,27 @@ function Dashboard() {
         const qData = secData.questions.find(
           (x) => x.questionID === qInfo.questionID
         );
-        return qData ? renderQuestionItems(qInfo, qData, null) : null;
+        return qData
+          ? renderQuestionItems(
+              qInfo,
+              qData,
+              null,
+              selectedGroupNames1,
+              selectedGroupNames2
+            )
+          : null;
       })}
     </Box>
   );
 
-  const renderSectionBoxes = (secInfo, sData1, sData2, identifier) => (
+  const renderSectionBoxes = (
+    secInfo,
+    sData1,
+    sData2,
+    identifier,
+    selectedGroupNames1,
+    selectedGroupNames2
+  ) => (
     <Box
       key={`${secInfo.sectionID}-${identifier}`}
       className="section-box"
@@ -357,7 +387,13 @@ function Dashboard() {
           (x) => x.questionID === qInfo.questionID
         );
         return qData1 && qData2
-          ? renderQuestionItems(qInfo, qData1, qData2)
+          ? renderQuestionItems(
+              qInfo,
+              qData1,
+              qData2,
+              selectedGroupNames1,
+              selectedGroupNames2
+            )
           : null;
       })}
     </Box>
@@ -366,7 +402,15 @@ function Dashboard() {
   const renderResponseSections = (selNodes, identifier) =>
     originalFormSections.map((secInfo) => {
       const secData = getSections(selNodes)[secInfo.sectionID];
-      return secData ? renderSectionBox(secInfo, secData, identifier) : null;
+      return secData
+        ? renderSectionBox(
+            secInfo,
+            secData,
+            identifier,
+            selectedGroupNames1,
+            selectedGroupNames2
+          )
+        : null;
     });
 
   const renderResponseSection = (selNodes1, selNodes2, identifier) =>
@@ -374,13 +418,18 @@ function Dashboard() {
       const sData1 = getSections(selNodes1)[secInfo.sectionID];
       const sData2 = getSections(selNodes2)[secInfo.sectionID];
       return sData1 && sData2
-        ? renderSectionBoxes(secInfo, sData1, sData2, identifier)
+        ? renderSectionBoxes(
+            secInfo,
+            sData1,
+            sData2,
+            identifier,
+            selectedGroupNames1,
+            selectedGroupNames2
+          )
         : null;
     });
-
   const selectedGroupNames1 = determineGroupNames(selectedNodes1);
   const selectedGroupNames2 = determineGroupNames(selectedNodes2);
-
   const surveyData = {
     title: localStorage.getItem("formTitle") || "Untitled Survey",
     questions: originalFormSections.flatMap((section) =>
