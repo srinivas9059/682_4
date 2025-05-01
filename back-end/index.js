@@ -265,8 +265,6 @@ await form.save();
         { formGroups: true, formParentGroups: true, _id: false }
       );
       console.log("Form Combined Groups", formCombinedGroupsObj);
-      const formGroups = formCombinedGroupsObj.formGroups;
-      const formParentGroups = formCombinedGroupsObj.formParentGroups;
       const defaultGroupID = randomstring.generate(7);
       const { groupName, groupID, durationInMinutes } = req.body;
       const duration = parseInt(durationInMinutes || "60");
@@ -354,7 +352,6 @@ await form.save();
           formParentGroups: formParentGroups,
           msg: "New form group created.",
         });
-      else res.status(404).json({ msg: "Form not found." });
     } catch (error) {
       res
         .status(500)
@@ -363,129 +360,59 @@ await form.save();
   });
 
   app.post("/createNewFormGroup/:id", async (req, res) => {
-
     try {
-      const formCombinedGroupsObj = await Form.findOne(
-        { formID: req.params.id },
-        { formGroups: true, formParentGroups: true, _id: false }
-      );
-
-      app.put("/updateForm", async (req, res) => {
-        const {
-          formID,
-          formTitle,
-          formDescription,
-          formSections,
-          formGroups,
-          formParentGroups,
-        } = req.body;
-      
-        try {
-          const result = await Form.updateOne(
-            { formID },
-            {
-              $set: {
-                formTitle,
-                formDescription,
-                formSections,
-                formGroups,
-                formParentGroups,
-              },
-            }
-          );
-      
-          if (result.modifiedCount === 1) {
-            res.status(200).json({ msg: "Form updated", result });
-          } else {
-            res.status(400).json({ msg: "No form updated" });
-          }
-        } catch (err) {
-          res.status(500).json({ msg: "Update failed", error: err.message });
-        }
-      });
-      
-      const formGroups = formCombinedGroupsObj.formGroups;
-      const formParentGroups = formCombinedGroupsObj.formParentGroups;
-      const defaultGroupID = randomstring.generate(7);
       const { groupName, groupID, durationInMinutes } = req.body;
-      const durationStr = durationInMinutes;
-
-      const parentGroupIndex = formParentGroups.findIndex(
+      const formID = req.params.id;
+  
+      const form = await Form.findOne({ formID });
+      if (!form) {
+        return res.status(404).json({ msg: "Form not found." });
+      }
+  
+      const parentGroupIndex = form.formParentGroups.findIndex(
         (pg) => pg.groupID === groupID
       );
-      if (parentGroupIndex === -1) {
-        const childParentGroupIndex = formGroups.findIndex(
+  
+      const newGroupID = randomstring.generate(7);
+      const expiresAt =
+        durationInMinutes && durationInMinutes !== "none"
+          ? new Date(Date.now() + parseInt(durationInMinutes) * 60000)
+          : null;
+  
+      const formGroup = {
+        groupID: newGroupID,
+        groupCode: "3",
+        parentGroupID: groupID,
+        groupName: groupName,
+        groupLink: `${CLIENT_BASE_URL}/#/userform/${formID}/${newGroupID}`,
+        expiresAt,
+      };
+  
+      form.formGroups.push(formGroup);
+  
+      if (parentGroupIndex !== -1) {
+        form.formParentGroups[parentGroupIndex].childGroups.push(newGroupID);
+      } else {
+        const childParentGroupIndex = form.formGroups.findIndex(
           (g) => g.groupID === groupID
         );
-        console.log(
-          " Form child Groups before adding ",
-          formGroups[childParentGroupIndex].childGroups
-        );
-        formGroups[childParentGroupIndex].childGroups.push(defaultGroupID);
-        console.log(
-          "New Child Group Added in form groups at the ",
-          childParentGroupIndex,
-          "position in formGroups"
-        );
-        console.log(
-          " Form child Groups after adding",
-          formGroups[childParentGroupIndex].childGroups
-        );
-      } else {
-        console.log(
-          " Form Parent Groups child Groups before adding",
-          formParentGroups[parentGroupIndex].childGroups
-        );
-        formParentGroups[parentGroupIndex].childGroups.push(defaultGroupID);
-        console.log(
-          "New Child Group Added in form parent groups at the ",
-          parentGroupIndex,
-          "position in formGroups"
-        );
-        console.log(
-          " Form Parent Groups child Groups after adding",
-          formParentGroups[parentGroupIndex].childGroups
-        );
+        if (childParentGroupIndex !== -1) {
+          form.formGroups[childParentGroupIndex].childGroups.push(newGroupID);
+        }
       }
-
-      const expiresAt =
-     durationInMinutes && durationInMinutes !== "none"
-    ? new Date(Date.now() + parseInt(durationInMinutes) * 60000)
-    : null;
-
-
-      const formGroup = {
-      groupID: defaultGroupID,
-      groupCode: "3",
-      parentGroupID: groupID,
-      groupName: groupName,
-      groupLink: `${CLIENT_BASE_URL}/#/userform/${req.params.id}/${defaultGroupID}`,
-      expiresAt: expiresAt,
-  };
-
-
-      formGroups.push(formGroup);
-      const updatedForm = {
-        $set: {
-          formGroups: formGroups,
-          formParentGroups: formParentGroups,
-        },
-      };
-      console.log("Updated Form groups", formGroups);
-      const result = await Form.updateOne({ formID: req.params.id }, updatedForm);
-      if (result.modifiedCount === 1)
-        res.status(200).json({
-          formGroup: formGroup,
-          formParentGroups: formParentGroups,
-          msg: "New form group created.",
-        });
-      else res.status(404).json({ msg: "Form not found." });
+  
+      await form.save();
+  
+      return res.status(200).json({
+        formGroup: formGroup,
+        msg: "New leaf group created.",
+      });
     } catch (error) {
-      res
-        .status(500)
-        .json({ msg: "See error message !", errorMsg: error.message });
+      console.error("❌ Error in /createNewFormGroup POST:", error);
+      res.status(500).json({ msg: "Internal Server Error", errorMsg: error.message });
     }
   });
+   
 
   app.post("/saveUserFormResponse", async (req, res) => {
     try {
