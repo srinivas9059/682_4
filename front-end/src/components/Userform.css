@@ -1,0 +1,34 @@
+/* userform-container is the entire screen */
+.user-form-submit {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem; /* if you want a bit of breathing room above */
+}
+.userform-container {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+
+  background-image: var(--background-image);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+
+  color: var(--primary-color);
+  font-family: var(--font-family, Arial, sans-serif);
+}
+
+/* Force child sections to be transparent */
+.user-form-page,
+.user-form-all-questions,
+.user-form-section,
+.user-form-question,
+.user-form-title-description {
+  background-color: transparent !important;
+}
+.user-form-submit {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
