@@ -212,7 +212,7 @@ This section outlines how major components in the system interact with one anoth
 
 ### 1. **Form Creation & Editing**
 
-** File:** `Form.jsx`
+**File:** `Form.jsx`
 **Purpose:** Main form builder for adding/editing title, description, sections, and questions.
 
 * **Uses:**
@@ -226,70 +226,70 @@ This section outlines how major components in the system interact with one anoth
 
 ### 2. **Questions & Options**
 
-** Section.jsx**
+**Section.jsx**
 Groups multiple questions under a single section.
 
-** SortableQuestion.jsx**
+**SortableQuestion.jsx**
 Wraps each question with draggable logic. Internally calls `Question.jsx`.
 
-** Question.jsx**
+**Question.jsx**
 Determines `questionType` and delegates rendering to:
 
 * `MCQuestion.jsx`
 * `SAQuestion.jsx`
 * `LSQuestion.jsx`
 
-** MCQuestion.jsx / SAQuestion.jsx / LSQuestion.jsx**
+**MCQuestion.jsx / SAQuestion.jsx / LSQuestion.jsx**
 Render the actual input fields during form creation/editing.
 
-** SortableOption.jsx**
+**SortableOption.jsx**
 Used inside `MCQuestion.jsx` for drag-and-drop of answer choices.
 
 ---
 
 ###  3. **Form Submission (User Side)**
 
-** UserForm.jsx**
+**UserForm.jsx**
 Displays the final public-facing form for respondents. Fetches form structure, renders questions, handles submit.
 
-** UserFormMCQ.jsx / UserFormSAQ.jsx / UserFormLSQ.jsx**
+**UserFormMCQ.jsx / UserFormSAQ.jsx / UserFormLSQ.jsx**
 Render individual question types as seen by respondents:
 
 * MCQ: Radio buttons
 * SAQ: Textarea input
 * LSQ: Horizontal Likert scale radio group
 
-** ResponseSubmitted.jsx**
+**ResponseSubmitted.jsx**
 Confirmation page after submission.
 
 ---
 
 ###  4. **Dashboard & Response Analysis**
 
-** Dashboard.jsx**
+**Dashboard.jsx**
 The main analytics screen. Fetches summary data, renders charts per group/section.
 
-** MCQDashboardListItem.jsx**
+**MCQDashboardListItem.jsx**
 Renders bar/pie charts based on MCQ distribution.
 
-** SAQDashboardListItem.jsx**
+**SAQDashboardListItem.jsx**
 
 * Shows word clouds of responses
 * Displays sentiment pie chart
 * Integrates keyword extraction using `compromise`
 * Allows export as PDF
 
-** LSQDashboardListItem.jsx**
+**LSQDashboardListItem.jsx**
 Renders Likert scale results using ApexCharts gauge chart. Supports group comparisons.
 
 ---
 
 ###  5. **AI Assistant Integration**
 
-** ChatWindow\.jsx**
+**ChatWindow\.jsx**
 Displays the Grok-powered AI chat UI.
 
-** ChatWindow\.css**
+**ChatWindow\.css**
 Handles chat interface styling.
 
 * Allows natural language queries based on survey results
@@ -299,19 +299,19 @@ Handles chat interface styling.
 
 ### 6. **Grouping & Theme Settings**
 
-** Settings.jsx**
+**Settings.jsx**
 
 * Toggle “accepting responses”
 * Delete form
 * Launch modals for parent/child group edits
 * Set group-level theme (font, background, etc.)
 
-** GroupCard.jsx / GroupListItem.jsx / GroupNameModal.jsx**
+**GroupCard.jsx / GroupListItem.jsx / GroupNameModal.jsx**
 
 * UI for parent/child group nesting
 * Used to organize form recipients
 
-** ParentGroup.jsx / ChildGroup.jsx / LeafGroup.jsx**
+**ParentGroup.jsx / ChildGroup.jsx / LeafGroup.jsx**
 
 * Group logic abstractions used by dashboard & settings
 
@@ -319,30 +319,30 @@ Handles chat interface styling.
 
 ###  7. **Utilities & Behavior**
 
-** SessionManager.jsx**
+**SessionManager.jsx**
 Handles user session management (timeout, validation, redirection).
 
-** DarkModeToggle.jsx**
+**DarkModeToggle.jsx**
 Toggle switch to enable dark mode UI themes.
 
-** Home.jsx**
+**Home.jsx**
 Landing page post-login:
 
 * List all forms
 * Create new form
 * Account menu via `AccountMenu.jsx`
 
-** FormListItem.jsx**
+**FormListItem.jsx**
 Used inside Home to render each saved form with delete/duplicate/edit options.
 
-** NAResponses.jsx**
+**NAResponses.jsx**
 Displayed when a form is no longer accepting responses (expiry triggered).
 
 ---
 
 ### 8. **Authentication (Firebase)**
 
-** auth/AccountMenu.jsx**
+**auth/AccountMenu.jsx**
 Displays logout and profile update options.
 
 * Authentication logic is handled globally via `AuthContext`
