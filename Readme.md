@@ -23,7 +23,7 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 ---
 ## Architecture
 
-1. **Frontend (React)**
+### 1. **Frontend (React)**
 
  - User Interface: Built using React, the frontend supports both admins and respondents. Admins can create forms, track responses, and analyze results, while users can access and submit surveys through dedicated form links.
 
@@ -33,25 +33,25 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
  - Form Customization: New features include font and theme customization per form and group, along with support for form expiry control.
 
---
+-
 
-2. **Backend (Express / Node.js)**  
+### 2. **Backend (Express / Node.js)**  
 
  - Express Server: The backend is powered by an Express server running on Node.js. Express handles HTTP requests and routes them to the appropriate endpoints.
 
  - API Endpoints: The backend exposes various API endpoints to handle operations such as creating, reading, updating, and deleting forms and responses. These endpoints process incoming requests, interact with the database, and send responses back to the frontend.
 
---
+-
 
-3. **Database (MongoDB)**  
+### 3. **Database (MongoDB)**  
 
  - Flexible Storage: Stores form data, user responses, group structures, AI summaries, and customization settings.
 
  - Mongoose Schemas: Define collections for forms, responses, themes, and expiry settings. Ensures consistency and validation during database operations.
 
---
+-
 
-4. **Data Flow**  
+### 4. **Data Flow**  
 
  - User/Admin Actions: Users and admins interact with the frontend by filling out forms, viewing dashboards, customizing themes, or asking questions through the AI chat interface.
 
