@@ -98,3 +98,105 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 - **AI Integration:** Grok API ()
 
 ---
+
+### 1. **Frontend**
+
+#### 1.1 Tech Stack
+
+* **React** with **Vite** for fast development and bundling (`vite.config.js`)
+* **Firebase** for authentication (`firebase.js`, `.env`)
+* **Charting Libraries**:
+
+  * Bar, Pie, and Gauge charts for MCQ/SAQ/LSQ dashboards
+* **PDF Export Tools**: `html2canvas`, `jsPDF`, and `autoTable` for exporting dashboards
+* **Natural Language Interface**: AI chatbot (`ChatWindow.jsx`) powered by Grok
+
+#### 1.2 Structure
+
+* **Entry Point**: `main.jsx` boots `App.jsx`
+* **Routing** handled via `react-router-dom` (Dashboard, Settings, FormBuilder, UserForm)
+* **Key Directories**:
+
+  * `components/`: All major UI components (dashboard items, form UI, settings, auth)
+  * `contexts/`: AuthContext for Firebase authentication
+  * `utils/`: AI keyword extraction, sentiment analysis, and chart utilities
+  * `assets/`: Fonts, CSS, and theme files (e.g., `dark.css`, `fonts.css`)
+
+#### 1.3 Key Components
+
+* `Dashboard.jsx`: Visualizes group-wise MCQ, SAQ, LSQ summaries with charts
+* `ChatWindow.jsx`: Embedded AI chat assistant that answers questions about survey results
+* `Settings.jsx`: Manage groups, themes, and form expiry/acceptance
+* `UserForm.jsx`: Public-facing form for respondents
+* `Form.jsx`: Form builder with drag-and-drop support (using `dnd-kit`)
+* `SortableQuestion.jsx`, `SortableOption.jsx`: Enables reordering sections/questions/options
+
+#### 1.4 Enhancements
+
+* **AI Assistant** via Grok to interpret dashboards
+* **Theme Customization** per group (color, font, background)
+* **Form Expiry Control** — disable submissions after deadline
+* **Dashboard PDF Export** with consistent formatting
+* **Real-time Filtering** via `TreeSelect` for group comparison
+
+---
+
+### 2. **Backend**
+
+#### 2.1 Node.js + Express
+
+* **Main file**: `back-end/index.js`
+* Uses `dotenv` for environment configuration
+* Uses `node-fetch` to call Grok’s API for AI insights
+* Routes are RESTful and fully integrated with the frontend
+
+#### 2.2 MongoDB + Mongoose
+
+* Schema defined in `formModel.js`
+* Includes sections, questions, responses, group hierarchy, theme, and expiry settings
+
+#### 2.3 Key Routes
+
+* `POST /ask-ai`: Sends form summary to Grok AI and returns insights
+* `GET /getSummaryDashboardData/:id`: Summarizes form results by group/section/question
+* `GET /getAllFormResponses/:id`: Returns raw response data for export
+* `PUT /updateFormGroupTheme/:formID/:groupID`: Saves theme settings for group dashboards
+* `POST /saveUserFormResponse`: Saves submitted form responses
+* `GET /createNewForm`: Initializes a new form with default groups and sections
+
+---
+
+### 3. **Authentication (Firebase)**
+
+* Set up via `AuthContext.jsx`
+* Auth flow includes:
+
+  * Email/password sign-up and login
+  * Google Sign-in
+  * Forgot Password
+* State is shared via React Context (`useAuth()` hook)
+* Protected routes only accessible if `currentUser` is authenticated
+
+---
+
+### 4. **Application Flow**
+
+1. **Admin logs in** using Firebase auth.
+2. **Admin creates a form**, configures sections, adds questions.
+3. Groups are automatically generated or added via settings.
+4. Each group gets a unique **shareable link**.
+5. Respondents use their link and fill the **UserForm**.
+6. Submissions are stored and **aggregated group-wise** in MongoDB.
+7. Admin views dashboards in **Dashboard.jsx**:
+
+   * MCQ → Bar Chart
+   * SAQ → Word Cloud + Pie Sentiment Chart
+   * LSQ → Gauge Chart
+8. Admin can:
+
+   * **Ask AI** to summarize insights (`ChatWindow`)
+   * **Export** dashboard section as a PDF
+   * **Toggle form expiry** or **customize themes**
+9. Data updates every 2 seconds (using polling in `useEffect`).
+
+---
