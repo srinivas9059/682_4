@@ -124,6 +124,8 @@ npm start
 
 cd ../front-end
 npm run dev
+
+``` 
 ---
 
 ### 1. **Frontend**
