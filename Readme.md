@@ -102,8 +102,8 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/formease.git
-cd formease
+git clone https://github.com/srinivas9059/682_4
+cd 682_4
 
 # Install frontend dependencies
 cd front-end
@@ -113,10 +113,21 @@ npm install
 cd ../back-end
 npm install
 
-# Setup environment variables in .env files
-# - Firebase credentials
-# - MongoDB URI
-# - Grok API key (for /ask-ai route)
+# Setup front-end environment variables in .env files
+VITE_BACKEND_URL=http://localhost:3000
+VITE_CLIENT_BASE_URL=http://localhost:5173
+VITE_API_KEY=AIzaSyCOEh2M5ce1oIsTPhd-AlN9v3w_-fkWH9U
+VITE_AUTH_DOMAIN=forms-project-auth.firebaseapp.com
+VITE_PROJECT_ID=forms-project-auth
+VITE_STORAGE_BUCKET=forms-project-auth.appspot.com
+VITE_MESSAGING_SENDER_ID=525852451699
+VITE_APP_ID=1:525852451699:web:130efe1b21a3115f4d9b06v
+
+# Setup back-end environment variables in .env files
+PORT=3000
+MONGODB_URI
+CLIENT_BASE_URL=http://localhost:5173
+GROQ_API_KEY (llama-3.3-70b-versatile get free API KEY from https://groq.com/)
 
 # Start servers
 cd ../back-end
