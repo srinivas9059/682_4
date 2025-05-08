@@ -33,7 +33,7 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
  - Form Customization: New features include font and theme customization per form and group, along with support for form expiry control.
 
----
+--
 
 2. **Backend (Express / Node.js)**  
 
@@ -41,7 +41,7 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
  - API Endpoints: The backend exposes various API endpoints to handle operations such as creating, reading, updating, and deleting forms and responses. These endpoints process incoming requests, interact with the database, and send responses back to the frontend.
 
----
+--
 
 3. **Database (MongoDB)**  
 
@@ -49,7 +49,7 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
  - Mongoose Schemas: Define collections for forms, responses, themes, and expiry settings. Ensures consistency and validation during database operations.
 
----
+--
 
 4. **Data Flow**  
 
