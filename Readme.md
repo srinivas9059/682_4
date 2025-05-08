@@ -98,6 +98,33 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 - **AI Integration:** Grok API ()
 
 ---
+## 🛠️ Installation
+
+```bash
+# Clone the repo
+git clone https://github.com/your-username/formease.git
+cd formease
+
+# Install frontend dependencies
+cd front-end
+npm install
+
+# Install backend dependencies
+cd ../back-end
+npm install
+
+# Setup environment variables in .env files
+# - Firebase credentials
+# - MongoDB URI
+# - Grok API key (for /ask-ai route)
+
+# Start servers
+cd ../back-end
+npm start
+
+cd ../front-end
+npm run dev
+---
 
 ### 1. **Frontend**
 
