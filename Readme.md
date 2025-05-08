@@ -25,45 +25,45 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 
 1. **Frontend (React)**
 
--User Interface: Built using React, the frontend supports both admins and respondents. Admins can create forms, track responses, and analyze results, while users can access and submit surveys through dedicated form links.
+- User Interface: Built using React, the frontend supports both admins and respondents. Admins can create forms, track responses, and analyze results, while users can access and submit surveys through dedicated form links.
 
--Dashboard Visualization: React components dynamically render data visualizations (bar charts, pie charts, gauge charts) for MCQ, SAQ, and LSQ questions.
+- Dashboard Visualization: React components dynamically render data visualizations (bar charts, pie charts, gauge charts) for MCQ, SAQ, and LSQ questions.
 
--AI Assistant Integration: A dedicated ChatWindow component provides natural language answers based on collected survey data, enabled by backend processing.
+- AI Assistant Integration: A dedicated ChatWindow component provides natural language answers based on collected survey data, enabled by backend processing.
 
--Form Customization: New features include font and theme customization per form and group, along with support for form expiry control.
+- Form Customization: New features include font and theme customization per form and group, along with support for form expiry control.
 
 ---
 
 2. **Backend (Express / Node.js)**  
 
--Express Server: The backend is powered by an Express server running on Node.js. Express handles HTTP requests and routes them to the appropriate endpoints.
+- Express Server: The backend is powered by an Express server running on Node.js. Express handles HTTP requests and routes them to the appropriate endpoints.
 
--API Endpoints: The backend exposes various API endpoints to handle operations such as creating, reading, updating, and deleting forms and responses. These endpoints process incoming requests, interact with the database, and send responses back to the frontend.
+- API Endpoints: The backend exposes various API endpoints to handle operations such as creating, reading, updating, and deleting forms and responses. These endpoints process incoming requests, interact with the database, and send responses back to the frontend.
 
 ---
 
--3. **Database (MongoDB)**  
+3. **Database (MongoDB)**  
 
--Flexible Storage: Stores form data, user responses, group structures, AI summaries, and customization settings.
+- Flexible Storage: Stores form data, user responses, group structures, AI summaries, and customization settings.
 
--Mongoose Schemas: Define collections for forms, responses, themes, and expiry settings. Ensures consistency and validation during database operations.
+- Mongoose Schemas: Define collections for forms, responses, themes, and expiry settings. Ensures consistency and validation during database operations.
 
 ---
 
 4. **Data Flow**  
 
--User/Admin Actions: Users and admins interact with the frontend by filling out forms, viewing dashboards, customizing themes, or asking questions through the AI chat interface.
+- User/Admin Actions: Users and admins interact with the frontend by filling out forms, viewing dashboards, customizing themes, or asking questions through the AI chat interface.
 
--API Requests: These interactions trigger API calls from the React frontend using fetch or Axios. Requests are routed to appropriate Express endpoints on the backend.
+- API Requests: These interactions trigger API calls from the React frontend using fetch or Axios. Requests are routed to appropriate Express endpoints on the backend.
 
--Backend Logic: The Express server handles incoming requests, applies validations and business logic (such as checking form expiry or building AI prompts), and prepares data for storage or analysis.
+- Backend Logic: The Express server handles incoming requests, applies validations and business logic (such as checking form expiry or building AI prompts), and prepares data for storage or analysis.
 
--Database Transactions: Using Mongoose, the backend performs the necessary CRUD operations on MongoDB — for example, saving responses, retrieving summaries, or updating themes.
+- Database Transactions: Using Mongoose, the backend performs the necessary CRUD operations on MongoDB — for example, saving responses, retrieving summaries, or updating themes.
 
--Response Handling: The backend sends structured JSON responses back to the frontend, which updates the user interface accordingly with the latest data or results.
+- Response Handling: The backend sends structured JSON responses back to the frontend, which updates the user interface accordingly with the latest data or results.
 
--AI Output: For AI-driven queries, the backend gathers relevant form structure and response summaries, formulates a contextual prompt, and sends it to the Grok AI API. The AI’s response is then returned to the frontend and displayed in the chat window.
+- AI Output: For AI-driven queries, the backend gathers relevant form structure and response summaries, formulates a contextual prompt, and sends it to the Grok AI API. The AI’s response is then returned to the frontend and displayed in the chat window.
 
 ---
 
