@@ -200,3 +200,152 @@ Our Form Management System addresses these issues by offering a user-friendly pl
 9. Data updates every 2 seconds (using polling in `useEffect`).
 
 ---
+Perfect — based on your latest folder structure image and the new features you've implemented, here's the **updated Component Structure (Spring 2025 version)** for your README or documentation:
+
+---
+
+##  Component Structure 
+
+This section outlines how major components in the system interact with one another, along with the specific role each plays. The project is modular and organized for scalability, reusability, and feature-rich behavior.
+
+---
+
+### 1. **Form Creation & Editing**
+
+** File:** `Form.jsx`
+**Purpose:** Main form builder for adding/editing title, description, sections, and questions.
+
+* **Uses:**
+
+  * `Section.jsx`: Renders multiple `Question` blocks under a section
+  * `SortableQuestion.jsx`: Enables drag-and-drop reordering of questions
+  * `Question.jsx`: Determines type (MCQ, SAQ, LSQ) and renders appropriate input component
+  * `FormTitleDescription.jsx`: Edits title and description
+
+---
+
+### 2. **Questions & Options**
+
+** Section.jsx**
+Groups multiple questions under a single section.
+
+** SortableQuestion.jsx**
+Wraps each question with draggable logic. Internally calls `Question.jsx`.
+
+** Question.jsx**
+Determines `questionType` and delegates rendering to:
+
+* `MCQuestion.jsx`
+* `SAQuestion.jsx`
+* `LSQuestion.jsx`
+
+** MCQuestion.jsx / SAQuestion.jsx / LSQuestion.jsx**
+Render the actual input fields during form creation/editing.
+
+** SortableOption.jsx**
+Used inside `MCQuestion.jsx` for drag-and-drop of answer choices.
+
+---
+
+###  3. **Form Submission (User Side)**
+
+** UserForm.jsx**
+Displays the final public-facing form for respondents. Fetches form structure, renders questions, handles submit.
+
+** UserFormMCQ.jsx / UserFormSAQ.jsx / UserFormLSQ.jsx**
+Render individual question types as seen by respondents:
+
+* MCQ: Radio buttons
+* SAQ: Textarea input
+* LSQ: Horizontal Likert scale radio group
+
+** ResponseSubmitted.jsx**
+Confirmation page after submission.
+
+---
+
+###  4. **Dashboard & Response Analysis**
+
+** Dashboard.jsx**
+The main analytics screen. Fetches summary data, renders charts per group/section.
+
+** MCQDashboardListItem.jsx**
+Renders bar/pie charts based on MCQ distribution.
+
+** SAQDashboardListItem.jsx**
+
+* Shows word clouds of responses
+* Displays sentiment pie chart
+* Integrates keyword extraction using `compromise`
+* Allows export as PDF
+
+** LSQDashboardListItem.jsx**
+Renders Likert scale results using ApexCharts gauge chart. Supports group comparisons.
+
+---
+
+###  5. **AI Assistant Integration**
+
+** ChatWindow\.jsx**
+Displays the Grok-powered AI chat UI.
+
+** ChatWindow\.css**
+Handles chat interface styling.
+
+* Allows natural language queries based on survey results
+* Connects to `/ask-ai` backend route for context-aware answers
+
+---
+
+### 6. **Grouping & Theme Settings**
+
+** Settings.jsx**
+
+* Toggle “accepting responses”
+* Delete form
+* Launch modals for parent/child group edits
+* Set group-level theme (font, background, etc.)
+
+** GroupCard.jsx / GroupListItem.jsx / GroupNameModal.jsx**
+
+* UI for parent/child group nesting
+* Used to organize form recipients
+
+** ParentGroup.jsx / ChildGroup.jsx / LeafGroup.jsx**
+
+* Group logic abstractions used by dashboard & settings
+
+---
+
+###  7. **Utilities & Behavior**
+
+** SessionManager.jsx**
+Handles user session management (timeout, validation, redirection).
+
+** DarkModeToggle.jsx**
+Toggle switch to enable dark mode UI themes.
+
+** Home.jsx**
+Landing page post-login:
+
+* List all forms
+* Create new form
+* Account menu via `AccountMenu.jsx`
+
+** FormListItem.jsx**
+Used inside Home to render each saved form with delete/duplicate/edit options.
+
+** NAResponses.jsx**
+Displayed when a form is no longer accepting responses (expiry triggered).
+
+---
+
+### 8. **Authentication (Firebase)**
+
+** auth/AccountMenu.jsx**
+Displays logout and profile update options.
+
+* Authentication logic is handled globally via `AuthContext`
+* Firebase integration connects login, signup, and password recovery to the UI
+
+---
