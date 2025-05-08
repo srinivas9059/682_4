@@ -10,6 +10,17 @@ This documentation brings together the efforts of both development phases to pro
 
 
 ---
+##Problem Statement
+
+Many organizations struggle with collecting and analyzing data effectively. Traditional methods, like paper forms or basic online surveys, often lead to mistakes and inefficiencies. Managing data from different sources can be overwhelming and time-consuming. One major issue is the inability to compare and review responses from different groups easily.
+
+For example, if a company conducts a survey across multiple departments, it becomes difficult to see how each department responded differently. This lack of comparison makes it hard to understand various perspectives and tailor strategies accordingly. Without a way to analyze these differences, valuable insights might be missed, leading to less informed decisions.
+
+While existing solutions provide some level of support, they often lack features like customizable form themes, response expiration control, and tools for deeper interpretation of qualitative feedback. Many platforms also offer limited export options or generic dashboards that don’t highlight trends clearly. This results in missed opportunities to uncover patterns, especially in open-ended responses, where keyword clustering or sentiment analysis could provide sharper insights.
+
+Our Form Management System addresses these issues by offering a user-friendly platform for creating forms, collecting data, and comparing responses across different groups. The system now includes features such as form expiry settings, theme customization, and keyword-based analysis for short answers, along with an AI assistant to help interpret results more effectively. These enhancements ensure that organizations can work with clean, structured, and meaningful data — leading to better understanding and smarter decision-making.
+
+---
 
 ## 🚀 Features
 
