@@ -386,3 +386,16 @@ Displays logout and profile update options.
 * Firebase integration connects login, signup, and password recovery to the UI
 
 ---
+
+## 🤖 AI Usage & Attribution
+
+OpenAI’s ChatGPT was used at various stages of this project. Specifically:
+- To summarize the frontend and backend architecture.
+- To assist with initial understanding of the provided codebase.
+- To organize the project structure into clearer sections.
+- To describe features, enhancements, and application flow more effectively.
+- To help with some portions of the documentation.
+
+All content produced with AI assistance was reviewed and refined by the development team to ensure technical accuracy and clarity.
+
+---
