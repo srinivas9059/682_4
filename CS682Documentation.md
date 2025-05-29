@@ -3109,3 +3109,6 @@ Throughout this documentation, every function, method, route, and UI element has
 
 ---
 
+## **AI Usage Acknowledgment:** 
+
+Some parts of this documentation were developed using ChatGPT to assist in writing structured, clear, and well-formatted technical content. All AI-generated responses were carefully reviewed and edited by the team to ensure accuracy and relevance.
